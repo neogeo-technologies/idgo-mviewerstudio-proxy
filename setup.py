@@ -1,7 +1,5 @@
 import setuptools
 
-import setuptools
-
 
 setuptools.setup(
     name="mviewerstudio-cas",
@@ -20,6 +18,8 @@ setuptools.setup(
     install_requires=[
         "Flask>=1.0.0,<1.1.0",
         "Flask-CAS>=1.0.0,<1.1.0",
+        "xmltodict>=0.11.0,<0.12.0",
+        "requests",
     ],
 )
 

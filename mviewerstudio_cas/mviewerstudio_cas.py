@@ -1,7 +1,16 @@
+from hashlib import md5
+from json import loads, dumps
+import logging
+from stat import S_ISREG, ST_MTIME, ST_MODE
+import os
+
 import flask
-from flask import Flask, send_from_directory, redirect
+from flask import Flask, send_from_directory, redirect, jsonify
 from flask_cas import CAS, logout
 from flask_cas import login_required
+import requests
+from werkzeug.exceptions import BadRequest
+import xmltodict
 
 app = Flask(__name__)
 
@@ -28,6 +37,102 @@ def send_viewerstudio_index():
 def send_viewerstudio_files(path):
     print(path)
     return send_from_directory(VIEWER_STUDIO_PATH, path)
+
+def get_conf():
+    with open(os.path.join(VIEWER_STUDIO_PATH, "config.json")) as config_file:
+        conf = loads(config_file.read())['app_conf']
+    return conf
+
+@app.route('/viewerstudio/srv/delete.php')
+@login_required
+def viewerstudio_delete_user_content():
+    conf = get_conf()
+
+    export_folder = conf['export_conf_folder']
+
+    entries = (os.path.join(export_folder, fn) for fn in os.listdir(export_folder) if fn.endswith(".xml"))
+
+    counter = 0
+
+    for filename in sorted(entries):
+        #logging.error(filename)
+        with open(filename) as f:
+            xml = xmltodict.parse(f.read(),
+                    process_namespaces=False)
+
+        logging.error(xml["config"]["metadata"]["rdf:RDF"])
+        description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
+        if description["dc:creator"] == cas.username:
+            counter += 1
+            logging.error("removing {filename} of '{creator}'".format(
+                        filename=filename,
+                        creator=cas.username))
+            os.unlink(filename)
+
+    return jsonify({"deleted_files":counter})
+
+
+@app.route('/viewerstudio/srv/list.php')
+@login_required
+def viewerstudio_list_user_content():
+    conf = get_conf()
+
+    export_folder = conf['export_conf_folder']
+
+    # sort files by age
+    entries = (os.path.join(export_folder, fn) for fn in os.listdir(export_folder))
+    entries = ((os.stat(path), path) for path in entries)
+    entries = ((stat[ST_MTIME], path)
+               for stat, path in entries if S_ISREG(stat[ST_MODE]) and path.endswith(".xml"))
+
+    data = []
+
+    for _, filename in sorted(entries):
+        #logging.error(filename)
+        with open(filename) as f:
+            xml = xmltodict.parse(f.read(),
+                    process_namespaces=False)
+
+        #logging.error(xml["config"]["metadata"]["rdf:RDF"])
+        description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
+        if description["dc:creator"] == cas.username:
+            url = filename.replace(conf['export_conf_folder'],
+                                   conf['conf_path_from_mviewer'])
+            metadata = {
+                    "url" : url,
+                    "creator":  description["dc:creator"],
+                    "date": description.get("dc:date",""),
+                    "title": description.get("dc:title",""),
+                    "subjects": description.get("dc:subject","")
+                    }
+            data.append(metadata)
+
+    return jsonify(data)
+
+@app.route('/viewerstudio/srv/store.php', methods=['POST'])
+@login_required
+def viewerstudio_store_user_content():
+    conf = get_conf()
+    xml0 = flask.request.data
+    xml = xml0.decode().replace("anonymous", cas.username)
+
+    filename = "{filename}.xml".format(filename=md5(xml.encode()).hexdigest())
+    with open(os.path.join(conf['export_conf_folder'],filename), "w") as f:
+        f.write(xml)
+
+    return jsonify({"success":True, "filepath": filename})
+
+@app.route('/proxy/', methods=['GET', 'POST'])
+def proxy():
+
+    if flask.request.method == "GET":
+        return requests.get(flask.request.args["url"]).content
+    elif flask.request.method == "POST":
+        return requests.post(flask.request.args["url"], data=flask.request.data).content
+    else:
+        raise BadRequest("Unauthorized method")
+
+
 
 cas = CAS(app, '/cas')
 app.config['CAS_SERVER'] = 'https://admin.dev.idgo.neogeo.fr'
