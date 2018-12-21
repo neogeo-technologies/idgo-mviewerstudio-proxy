@@ -19,7 +19,6 @@ VIEWER_STUDIO_PATH = '/var/www/html/viewerstudio/'
 @app.route('/')
 @login_required
 def route_root():
-#    import rpdb; rpdb.set_trace()
     return redirect("/viewerstudio/")
 
 @app.route("/logout")
@@ -30,6 +29,8 @@ def rt_logout():
 @app.route('/viewerstudio/')
 @login_required
 def send_viewerstudio_index():
+    logging.error(cas)
+#    import rpdb; rpdb.set_trace()
     return send_from_directory(VIEWER_STUDIO_PATH, "index.html")
 
 @app.route('/viewerstudio/<path:path>')
@@ -70,6 +71,16 @@ def viewerstudio_delete_user_content():
             os.unlink(filename)
 
     return jsonify({"deleted_files":counter})
+
+
+@app.route('/viewerstudio/user_info')
+@login_required
+def viewerstudio_user_info():
+    data = {
+            "username": cas.username,
+            "attributes": cas.attributes
+            }
+    return jsonify(data)
 
 
 @app.route('/viewerstudio/srv/list.php')
