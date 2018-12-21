@@ -84,11 +84,17 @@ def viewerstudio_delete_user_content():
 @app.route('/viewerstudio/user_info')
 @login_required
 def viewerstudio_user_info():
-    data = {
-            "username": cas.username,
-            "attributes": cas.attributes
-            }
-    return jsonify(data)
+    user_dj = User.objects.get(username=cas.username, is_active=True)
+
+    try:
+        data = serializer(user_dj)
+    except (FieldError, ValueError):
+        return flask.abort(400)
+    else:
+        if len(data) == 0:
+            raise flask.abort(404)
+        else:
+            return jsonify(data)
 
 
 @app.route('/viewerstudio/srv/list.php')
@@ -165,26 +171,6 @@ def proxy():
         return requests.post(flask.request.args["url"], data=flask.request.data).content
     else:
         raise BadRequest("Unauthorized method")
-
-
-@app.route('/user/info/<user>')
-def user_info_django(user):
-    user_dj = User.objects.get(username=cas.username, is_active=True)
-
-    if not( cas.username == user or user_dj.profile.is_admin):
-        # L'utilisateur peut se voir lui même
-        # Sinon seuls les administrateurs « métiers » peuvent accéder au service
-        raise flask.abort(404)
-
-    try:
-        data = serializer(user_dj)
-    except (FieldError, ValueError):
-        return flask.abort(400)
-    else:
-        if len(data) == 0:
-            raise flask.abort(404)
-        else:
-            return jsonify(data)
 
 
 cas = CAS(app, '/cas')
