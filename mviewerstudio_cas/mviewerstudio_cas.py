@@ -3,6 +3,7 @@ from json import loads, dumps
 import logging
 from stat import S_ISREG, ST_MTIME, ST_MODE
 import os
+import sys
 
 import flask
 from flask import Flask, send_from_directory, redirect, jsonify
@@ -11,6 +12,13 @@ from flask_cas import login_required
 import requests
 from werkzeug.exceptions import BadRequest
 import xmltodict
+
+import django
+sys.path.append("/idgo_venv/")
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+django.setup()
+from django.contrib.auth.models import User  # noqa: E402
+from idgo_admin.api.views.user import serializer # noqa: E402
 
 app = Flask(__name__)
 
@@ -158,6 +166,25 @@ def proxy():
     else:
         raise BadRequest("Unauthorized method")
 
+
+@app.route('/user/info/<user>')
+def user_info_django(user):
+    user_dj = User.objects.get(username=cas.username, is_active=True)
+
+    if not( cas.username == user or user_dj.profile.is_admin):
+        # L'utilisateur peut se voir lui même
+        # Sinon seuls les administrateurs « métiers » peuvent accéder au service
+        raise flask.abort(404)
+
+    try:
+        data = serializer(user_dj)
+    except (FieldError, ValueError):
+        return flask.abort(400)
+    else:
+        if len(data) == 0:
+            raise flask.abort(404)
+        else:
+            return jsonify(data)
 
 
 cas = CAS(app, '/cas')
