@@ -116,8 +116,23 @@ def viewerstudio_store_user_content():
     xml0 = flask.request.data
     xml = xml0.decode().replace("anonymous", cas.username)
 
-    filename = "{filename}.xml".format(filename=md5(xml.encode()).hexdigest())
-    with open(os.path.join(conf['export_conf_folder'],filename), "w") as f:
+    # Retrieve title
+    _xml = xmltodict.parse(xml0,
+                    process_namespaces=False)
+
+    #logging.error(_xml["config"]["metadata"]["dc:title"])
+    #_map_title = _xml["config"]["metadata"]["dc:title"]
+    _map_title = 'toto'
+
+    # Create organization repo if not exists
+    _map_directory = os.path.join(conf['export_conf_folder'], cas.username)
+    if not os.path.exists(_map_directory):
+        os.makedirs(_map_directory)
+
+    #filename = "{filename}.xml".format(filename=md5(xml.encode()).hexdigest())
+    filename = "{filename}.xml".format(filename=_map_title)
+
+    with open(os.path.join(_map_directory,filename), "w") as f:
         f.write(xml)
 
     return jsonify({"success":True, "filepath": filename})
