@@ -22,7 +22,7 @@ setuptools.setup(
         "requests",
 
         "ckanapi==4.1",
-        "Django==1.11.6",
+        "Django>=1.11.0,<1.12.0",
         "django-admin-list-filter-dropdown==1.0.2",
         "django-bootstrap3==11.0.0",
         "django-extensions==2.1.4",
