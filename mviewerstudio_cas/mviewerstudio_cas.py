@@ -13,6 +13,8 @@ import requests
 from werkzeug.exceptions import BadRequest
 import xmltodict
 
+from django.utils.text import slugify
+
 import django
 sys.path.append("/idgo_venv/")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
@@ -83,7 +85,7 @@ def viewerstudio_delete_user_content():
 
 @app.route('/viewerstudio/user_info')
 @login_required
-def viewerstudio_user_info():
+def viewerstudio_est ():
     user_dj = User.objects.get(username=cas.username, is_active=True)
 
     try:
@@ -101,8 +103,10 @@ def viewerstudio_user_info():
 @login_required
 def viewerstudio_list_user_content():
     conf = get_conf()
+    _user = User.objects.get(username=cas.username, is_active=True)
 
-    export_folder = conf['export_conf_folder']
+    #export_folder = conf['export_conf_folder']
+    export_folder = os.path.join(conf['export_conf_folder'], _user.profile.organisation.ckan_slug)
 
     # sort files by age
     entries = (os.path.join(export_folder, fn) for fn in os.listdir(export_folder))
@@ -137,6 +141,9 @@ def viewerstudio_list_user_content():
 @app.route('/viewerstudio/srv/store.php', methods=['POST'])
 @login_required
 def viewerstudio_store_user_content():
+
+    _user = User.objects.get(username=cas.username, is_active=True)
+
     conf = get_conf()
     xml0 = flask.request.data
     xml = xml0.decode().replace("anonymous", cas.username)
@@ -145,12 +152,14 @@ def viewerstudio_store_user_content():
     _xml = xmltodict.parse(xml0,
                     process_namespaces=False)
 
-    #logging.error(_xml["config"]["metadata"]["dc:title"])
-    #_map_title = _xml["config"]["metadata"]["dc:title"]
-    _map_title = 'toto'
+    logging.error(_xml["config"]["metadata"])
+    from pprint import pprint
+    #pprint(_xml["config"]["metadata"])
+    description =_xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
+    _map_title = slugify( description.get("dc:title","") )
 
     # Create organization repo if not exists
-    _map_directory = os.path.join(conf['export_conf_folder'], cas.username)
+    _map_directory = os.path.join(conf['export_conf_folder'], _user.profile.organisation.ckan_slug)
     if not os.path.exists(_map_directory):
         os.makedirs(_map_directory)
 
@@ -160,7 +169,7 @@ def viewerstudio_store_user_content():
     with open(os.path.join(_map_directory,filename), "w") as f:
         f.write(xml)
 
-    return jsonify({"success":True, "filepath": filename})
+    return jsonify({"success":True, "filepath": filename, "organisation": _user.profile.organisation.ckan_slug})
 
 @app.route('/proxy/', methods=['GET', 'POST'])
 def proxy():
