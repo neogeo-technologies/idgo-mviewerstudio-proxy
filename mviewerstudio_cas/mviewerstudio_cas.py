@@ -210,11 +210,9 @@ def proxy():
 
 
 cas = CAS(app, "/cas")
-app.config["CAS_SERVER"] = "https://admin.dev.idgo.neogeo.fr"
+app.config.from_object("settings")
 app.config["CAS_AFTER_LOGIN"] = "route_root"
 app.config["CAS_LOGIN_ROUTE"] = "/signin"
-
-app.secret_key = "Hohvian8Zaiw6oohainoeS0VeSh4ees3Mu6waiwuKooxeth9CooP3AhNeajoh1Ie"
 app.config["SESSION_TYPE"] = "filesystem"
 
 # For mod_wgsi compatibility
