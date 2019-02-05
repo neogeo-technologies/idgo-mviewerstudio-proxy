@@ -9,10 +9,10 @@ setuptools.setup(
     description="A CAS enabled Proxy for mviewerstudio",
     packages=setuptools.find_packages(where="mviewerstudio_cas/*"),
     classifiers=(
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3 :: Only',
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3 :: Only",
         "Operating System :: OS Independent",
     ),
     install_requires=[
@@ -20,7 +20,6 @@ setuptools.setup(
         "Flask-CAS>=1.0.0,<1.1.0",
         "xmltodict>=0.11.0,<0.12.0",
         "requests",
-
         "ckanapi==4.1",
         "Django>=1.11.0,<1.12.0",
         "django-admin-list-filter-dropdown==1.0.2",
@@ -33,4 +32,3 @@ setuptools.setup(
         "timeout-decorator==0.4.1",
     ],
 )
-
