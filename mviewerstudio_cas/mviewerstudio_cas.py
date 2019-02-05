@@ -216,6 +216,10 @@ app.config["CAS_LOGIN_ROUTE"] = "/signin"
 
 app.secret_key = "Hohvian8Zaiw6oohainoeS0VeSh4ees3Mu6waiwuKooxeth9CooP3AhNeajoh1Ie"
 app.config["SESSION_TYPE"] = "filesystem"
+
+# For mod_wgsi compatibility
+application = app
+
 if __name__ == "__main__":
     app.debug = True
     app.run()
