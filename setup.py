@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name="mviewerstudio-cas",
-    version="0.1.0",
+    version="0.2.0",
     author="Sébastien DA ROCHA",
     author_email="sebastien@da-rocha.net",
     description="A CAS enabled Proxy for mviewerstudio",

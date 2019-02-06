@@ -1,5 +1,4 @@
-from hashlib import md5
-from json import loads, dumps
+from json import loads
 import logging
 from stat import S_ISREG, ST_MTIME, ST_MODE
 import os
@@ -23,8 +22,8 @@ django.setup()
 from django.contrib.auth.models import User  # noqa: E402
 from idgo_admin.api.views.user import serializer  # noqa: E402
 
+logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
-
 VIEWER_STUDIO_PATH = "/var/www/html/viewerstudio/"
 
 
@@ -43,20 +42,21 @@ def rt_logout():
 @app.route("/viewerstudio/")
 @login_required
 def send_viewerstudio_index():
-    logging.error(cas)
-    #    import rpdb; rpdb.set_trace()
     return send_from_directory(VIEWER_STUDIO_PATH, "index.html")
 
 
 @app.route("/viewerstudio/<path:path>")
 @login_required
 def send_viewerstudio_files(path):
-    print(path)
+    logging.info("File transfered: {}".format(path))
     return send_from_directory(VIEWER_STUDIO_PATH, path)
 
 
 def get_conf():
-    with open(os.path.join(VIEWER_STUDIO_PATH, "config.json")) as config_file:
+    logging.info(os.path.join(VIEWER_STUDIO_PATH, "config.json"))
+    with open(
+        os.path.join(VIEWER_STUDIO_PATH, "config.json"), encoding="utf-8"
+    ) as config_file:
         conf = loads(config_file.read())["app_conf"]
     return conf
 
@@ -77,15 +77,14 @@ def viewerstudio_delete_user_content():
     counter = 0
 
     for filename in sorted(entries):
-        # logging.error(filename)
         with open(filename) as f:
             xml = xmltodict.parse(f.read(), process_namespaces=False)
 
-        logging.error(xml["config"]["metadata"]["rdf:RDF"])
+        logging.info(xml["config"]["metadata"]["rdf:RDF"])
         description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
         if description["dc:creator"] == cas.username:
             counter += 1
-            logging.error(
+            logging.info(
                 "removing {filename} of '{creator}'".format(
                     filename=filename, creator=cas.username
                 )
@@ -102,7 +101,8 @@ def viewerstudio_est():
 
     try:
         data = serializer(user_dj)
-    except (FieldError, ValueError):
+    except (FieldError, ValueError) as e:
+        logging.error(e)
         return flask.abort(400)
     else:
         if len(data) == 0:
@@ -134,7 +134,6 @@ def viewerstudio_list_user_content():
     data = []
 
     for _, filename in sorted(entries):
-        # logging.error(filename)
         with open(filename) as f:
             xml = xmltodict.parse(f.read(), process_namespaces=False)
 
@@ -169,10 +168,8 @@ def viewerstudio_store_user_content():
     # Retrieve title
     _xml = xmltodict.parse(xml0, process_namespaces=False)
 
-    logging.error(_xml["config"]["metadata"])
-    from pprint import pprint
+    logging.info("config/metadata: " + str(_xml["config"]["metadata"]))
 
-    # pprint(_xml["config"]["metadata"])
     description = _xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
     _map_title = slugify(description.get("dc:title", ""))
 
@@ -183,16 +180,18 @@ def viewerstudio_store_user_content():
     if not os.path.exists(_map_directory):
         os.makedirs(_map_directory)
 
-    # filename = "{filename}.xml".format(filename=md5(xml.encode()).hexdigest())
     filename = "{filename}.xml".format(filename=_map_title)
 
-    with open(os.path.join(_map_directory, filename), "w") as f:
+    file_path = os.path.join(_map_directory, filename)
+    relative_file_path = "{}/{}".format(_user.profile.organisation.ckan_slug, filename)
+
+    with open(file_path, "w", encoding="utf-8") as f:
         f.write(xml)
 
     return jsonify(
         {
             "success": True,
-            "filepath": filename,
+            "filepath": relative_file_path,
             "organisation": _user.profile.organisation.ckan_slug,
         }
     )
