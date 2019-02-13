@@ -134,7 +134,7 @@ def viewerstudio_list_user_content():
     data = []
 
     for _, filename in sorted(entries):
-        with open(filename) as f:
+        with open(filename, encoding="utf-8") as f:
             xml = xmltodict.parse(f.read(), process_namespaces=False)
 
         # logging.error(xml["config"]["metadata"]["rdf:RDF"])
