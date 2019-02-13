@@ -117,40 +117,59 @@ def viewerstudio_list_user_content():
     conf = get_conf()
     _user = User.objects.get(username=cas.username, is_active=True)
 
-    # export_folder = conf['export_conf_folder']
-    export_folder = os.path.join(
-        conf["export_conf_folder"], _user.profile.organisation.ckan_slug
-    )
-
-    # sort files by age
-    entries = (os.path.join(export_folder, fn) for fn in os.listdir(export_folder))
-    entries = ((os.stat(path), path) for path in entries)
-    entries = (
-        (stat[ST_MTIME], path)
-        for stat, path in entries
-        if S_ISREG(stat[ST_MODE]) and path.endswith(".xml")
-    )
-
+    folders = []
     data = []
 
-    for _, filename in sorted(entries):
-        with open(filename, encoding="utf-8") as f:
-            xml = xmltodict.parse(f.read(), process_namespaces=False)
-
-        # logging.error(xml["config"]["metadata"]["rdf:RDF"])
-        description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
-        if description["dc:creator"] == cas.username:
-            url = filename.replace(
-                conf["export_conf_folder"], conf["conf_path_from_mviewer"]
+    if _user.profile.is_admin:
+        folders.append(
+            fn for fn in os.listdir(conf["export_conf_folder"]) if os.path.isdir(fn)
+        )
+    else:
+        if _user.profile.organisation:
+            folders.append(
+                os.path.join(
+                    conf["export_conf_folder"], _user.profile.organisation.ckan_slug
+                )
             )
-            metadata = {
-                "url": url,
-                "creator": description["dc:creator"],
-                "date": description.get("dc:date", ""),
-                "title": description.get("dc:title", ""),
-                "subjects": description.get("dc:subject", ""),
-            }
-            data.append(metadata)
+
+        for organisation in _user.profile.referent_for:
+            folder = os.path.join(conf["export_conf_folder"], organisation.ckan_slug)
+            if not folders or folder not in folders:
+                folders.append(folder)
+
+    if not folders:
+        return jsonify(data)
+
+    for folder in folders:
+
+        # sort files by age
+        entries = (os.path.join(folder, fn) for fn in os.listdir(folder))
+        entries = ((os.stat(path), path) for path in entries)
+        entries = (
+            (stat[ST_MTIME], path)
+            for stat, path in entries
+            if S_ISREG(stat[ST_MODE]) and path.endswith(".xml")
+        )
+
+        for _, filename in sorted(entries):
+            with open(filename, encoding="utf-8") as f:
+                xml = xmltodict.parse(f.read(), process_namespaces=False)
+
+                # logging.error(xml["config"]["metadata"]["rdf:RDF"])
+                description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
+                if description["dc:creator"] == cas.username:
+                    url = filename.replace(
+                        conf["export_conf_folder"], conf["conf_path_from_mviewer"]
+                    )
+                    metadata = {
+                        "url": url,
+                        "creator": description["dc:creator"],
+                        "date": description.get("dc:date", ""),
+                        "title": description.get("dc:title", ""),
+                        "subjects": description.get("dc:subject", ""),
+                        "group": os.path.basename(folder),
+                    }
+                    data.append(metadata)
 
     return jsonify(data)
 
