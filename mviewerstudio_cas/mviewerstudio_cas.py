@@ -68,16 +68,13 @@ def viewerstudio_delete_user_content():
 
     export_folder = conf["export_conf_folder"]
 
-    entries = (
-        os.path.join(export_folder, fn)
-        for fn in os.listdir(export_folder)
-        if fn.endswith(".xml")
-    )
-
+    entries = []
+    for (dir_path, dir_names, file_names) in os.walk(export_folder):
+        entries += [os.path.join(dir_path, file) for file in file_names]
     counter = 0
 
     for filename in sorted(entries):
-        with open(filename) as f:
+        with open(filename, encoding="utf-8") as f:
             xml = xmltodict.parse(f.read(), process_namespaces=False)
 
         logging.info(xml["config"]["metadata"]["rdf:RDF"])
