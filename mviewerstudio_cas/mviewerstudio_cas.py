@@ -118,8 +118,12 @@ def viewerstudio_list_user_content():
     data = []
 
     if _user.profile.is_admin:
-        folders.append(
-            fn for fn in os.listdir(conf["export_conf_folder"]) if os.path.isdir(fn)
+        folders.extend(
+            [
+                os.path.join(conf["export_conf_folder"], fn)
+                for fn in os.listdir(conf["export_conf_folder"])
+                if os.path.isdir(os.path.join(conf["export_conf_folder"], fn))
+            ]
         )
     else:
         if _user.profile.organisation:
@@ -154,7 +158,7 @@ def viewerstudio_list_user_content():
 
                 # logging.error(xml["config"]["metadata"]["rdf:RDF"])
                 description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
-                if description["dc:creator"] == cas.username:
+                if description["dc:creator"] == cas.username or _user.profile.is_admin:
                     url = filename.replace(
                         conf["export_conf_folder"], conf["conf_path_from_mviewer"]
                     )
