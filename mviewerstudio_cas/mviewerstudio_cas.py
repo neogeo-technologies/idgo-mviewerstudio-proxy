@@ -3,9 +3,10 @@ import logging
 from stat import S_ISREG, ST_MTIME, ST_MODE
 import os
 import sys
+from functools import wraps
 
 import flask
-from flask import Flask, send_from_directory, redirect, jsonify
+from flask import Flask, send_from_directory, redirect, jsonify, abort
 from flask_cas import CAS, logout
 from flask_cas import login_required
 import requests
@@ -27,6 +28,23 @@ app = Flask(__name__)
 VIEWER_STUDIO_PATH = "/var/www/html/viewerstudio/"
 
 
+def privileged_user_required(func):
+    @wraps(func)
+    def decorated_view(*args, **kwargs):
+        # Pré-traitement
+        _user = User.objects.get(username=cas.username, is_active=True).profile
+        if not (_user.is_admin or _user.is_referent or _user.is_contributor):
+            abort(403)
+        return func(*args, **kwargs)
+        # Post-traitement
+    return decorated_view
+
+
+@app.errorhandler(403)
+def error_403(e):
+    return send_from_directory(VIEWER_STUDIO_PATH, "403.html")
+
+
 @app.route("/")
 @login_required
 def route_root():
@@ -41,12 +59,14 @@ def rt_logout():
 @app.route("/viewerstudio")
 @app.route("/viewerstudio/")
 @login_required
+@privileged_user_required
 def send_viewerstudio_index():
     return send_from_directory(VIEWER_STUDIO_PATH, "index.html")
 
 
 @app.route("/viewerstudio/<path:path>")
 @login_required
+@privileged_user_required
 def send_viewerstudio_files(path):
     logging.info("File transfered: {}".format(path))
     return send_from_directory(VIEWER_STUDIO_PATH, path)
@@ -63,6 +83,7 @@ def get_conf():
 
 @app.route("/viewerstudio/srv/delete.php")
 @login_required
+@privileged_user_required
 def viewerstudio_delete_user_content():
     conf = get_conf()
 
@@ -93,6 +114,7 @@ def viewerstudio_delete_user_content():
 
 @app.route("/viewerstudio/user_info")
 @login_required
+@privileged_user_required
 def viewerstudio_est():
     user_dj = User.objects.get(username=cas.username, is_active=True)
 
@@ -110,6 +132,7 @@ def viewerstudio_est():
 
 @app.route("/viewerstudio/srv/list.php")
 @login_required
+@privileged_user_required
 def viewerstudio_list_user_content():
     conf = get_conf()
     _user = User.objects.get(username=cas.username, is_active=True)
@@ -177,6 +200,7 @@ def viewerstudio_list_user_content():
 
 @app.route("/viewerstudio/srv/store.php", methods=["POST"])
 @login_required
+@privileged_user_required
 def viewerstudio_store_user_content():
 
     _user = User.objects.get(username=cas.username, is_active=True)
@@ -240,3 +264,4 @@ application = app
 if __name__ == "__main__":
     app.debug = True
     app.run()
+
