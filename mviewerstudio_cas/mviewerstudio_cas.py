@@ -170,35 +170,38 @@ def get_user_content_in_folder(folder, user_role):
     user_content = []
 
     # List regular XML files
-    entries = (os.path.join(folder, fn) for fn in os.listdir(folder))
-    entries = ((os.stat(path), path) for path in entries)
-    entries = (
-        path
-        for stat, path in entries
-        if S_ISREG(stat[ST_MODE]) and path.endswith(".xml")
-    )
+    try:
+        entries = (os.path.join(folder, fn) for fn in os.listdir(folder))
+        entries = ((os.stat(path), path) for path in entries)
+        entries = (
+            path
+            for stat, path in entries
+            if S_ISREG(stat[ST_MODE]) and path.endswith(".xml")
+        )
 
-    for filename in entries:
-        with open(filename, encoding="utf-8") as f:
-            xml = xmltodict.parse(f.read(), process_namespaces=False)
+        for filename in entries:
+            with open(filename, encoding="utf-8") as f:
+                xml = xmltodict.parse(f.read(), process_namespaces=False)
 
-            # admin user can access any xml file
-            # referent user can access any xml file for all organisation he is a referent for
-            # contributor user can access xml files of which he is the creator
-            description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
-            if not (user_role == "contributor" and description["dc:creator"] == cas.username):
-                url = filename.replace(
-                    conf["export_conf_folder"], conf["conf_path_from_mviewer"]
-                )
-                metadata = {
-                    "url": url,
-                    "creator": description["dc:creator"],
-                    "date": description.get("dc:date", ""),
-                    "title": description.get("dc:title", ""),
-                    "subjects": description.get("dc:subject", ""),
-                    "group": os.path.basename(folder),
-                }
-                user_content.append(metadata)
+                # admin user can access any xml file
+                # referent user can access any xml file for all organisation he is a referent for
+                # contributor user can access xml files of which he is the creator
+                description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
+                if not (user_role == "contributor" and description["dc:creator"] == cas.username):
+                    url = filename.replace(
+                        conf["export_conf_folder"], conf["conf_path_from_mviewer"]
+                    )
+                    metadata = {
+                        "url": url,
+                        "creator": description["dc:creator"],
+                        "date": description.get("dc:date", ""),
+                        "title": description.get("dc:title", ""),
+                        "subjects": description.get("dc:subject", ""),
+                        "group": os.path.basename(folder),
+                    }
+                    user_content.append(metadata)
+    except FileNotFoundError as e:
+        logging.debug(e)
 
     return user_content
 
@@ -207,6 +210,7 @@ def get_user_content_in_folder(folder, user_role):
 @login_required
 @privileged_user_required
 def viewerstudio_list_user_content():
+    conf = get_conf()
     user = User.objects.get(username=cas.username, is_active=True)
 
     folders = set()
@@ -231,7 +235,6 @@ def viewerstudio_list_user_content():
 @login_required
 @privileged_user_required
 def viewerstudio_store_user_content():
-    # TODO: add a parameter for folder
     user = User.objects.get(username=cas.username, is_active=True)
 
     conf = get_conf()
@@ -246,9 +249,11 @@ def viewerstudio_store_user_content():
     description = _xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
     _map_title = slugify(description.get("dc:title", ""))
 
+    # Retrieve publisher
     # Create organization repo if not exists
+    publisher = description.get("dc:publisher", "")
     _map_directory = os.path.join(
-        conf["export_conf_folder"], user.profile.organisation.ckan_slug
+        conf["export_conf_folder"], publisher
     )
     if not os.path.exists(_map_directory):
         os.makedirs(_map_directory)
@@ -256,7 +261,7 @@ def viewerstudio_store_user_content():
     filename = "{filename}.xml".format(filename=_map_title)
 
     file_path = os.path.join(_map_directory, filename)
-    relative_file_path = "{}/{}".format(user.profile.organisation.ckan_slug, filename)
+    relative_file_path = "{}/{}".format(publisher, filename)
 
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(xml)
@@ -265,7 +270,7 @@ def viewerstudio_store_user_content():
         {
             "success": True,
             "filepath": relative_file_path,
-            "group": user.profile.organisation.ckan_slug,
+            "group": publisher,
         }
     )
 
