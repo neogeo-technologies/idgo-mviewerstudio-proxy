@@ -180,8 +180,6 @@ def viewerstudio_user_info():
                         }
                     )
 
-        logging.info(data)
-
     except (FieldError, ValueError) as e:
         logging.error(e)
         return flask.abort(400)
@@ -214,7 +212,8 @@ def get_user_content_in_folder(folder, user_role):
                 # referent user can access any xml file for all organisation he is a referent for
                 # contributor user can access xml files of which he is the creator
                 description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
-                if not (user_role == "contributor" and description["dc:creator"] == cas.username):
+                if ((user_role == "contributor" and description["dc:creator"] == cas.username) or
+                    user_role == "referent"):
                     url = filename.replace(
                         conf["export_conf_folder"], conf["conf_path_from_mviewer"]
                     )
@@ -272,8 +271,6 @@ def viewerstudio_store_user_content():
 
     # Retrieve title
     _xml = xmltodict.parse(xml0, process_namespaces=False)
-
-    logging.info("config/metadata: " + str(_xml["config"]["metadata"]))
 
     description = _xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
     _map_title = slugify(description.get("dc:title", ""))
