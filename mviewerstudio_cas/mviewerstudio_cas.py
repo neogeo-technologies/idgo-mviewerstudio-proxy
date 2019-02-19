@@ -35,8 +35,13 @@ def privileged_user_required(func):
         # Preprocessing
         user = User.objects.get(username=cas.username, is_active=True)
 
+        is_user_crige_partner_member = False
         is_user_crige_partner_contributor = False
         is_user_crige_partner_referent = False
+
+        # is the user a CRIGE partner member?
+        if user.profile.organisation:
+            is_user_crige_partner_member = user.profile.organisation.is_crige_partner
 
         # is the user a CRIGE partner contributor?
         for organisation in user.profile.contribute_for:
@@ -50,11 +55,10 @@ def privileged_user_required(func):
                 is_user_crige_partner_referent = True
                 break
 
-#         logging.info("crige admin? " + str(user.profile.is_crige_admin))
-#         logging.info("crige partner contributor? " + str(is_user_crige_partner_contributor))
-#         logging.info("crige partner referent? " + str(is_user_crige_partner_referent))
+        is_user_allowed = (user.profile.is_crige_admin or is_user_crige_partner_member) and \
+                          (is_user_crige_partner_contributor or is_user_crige_partner_referent)
 
-        if not (user.profile.is_crige_admin or is_user_crige_partner_contributor or is_user_crige_partner_referent):
+        if not is_user_allowed:
             abort(403)
         return func(*args, **kwargs)
         # Postprocessing
