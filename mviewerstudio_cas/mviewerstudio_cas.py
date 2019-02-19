@@ -29,14 +29,35 @@ VIEWER_STUDIO_PATH = "/var/www/html/viewerstudio/"
 
 
 def privileged_user_required(func):
+    # Access to mviewerstudio is only given to CRIGE admins, CRIGE partners referents and CRIGE parteners contributors
     @wraps(func)
     def decorated_view(*args, **kwargs):
-        # Pré-traitement
-        user = User.objects.get(username=cas.username, is_active=True).profile
-        if not (user.is_admin or user.is_referent or user.is_contributor):
+        # Preprocessing
+        user = User.objects.get(username=cas.username, is_active=True)
+
+        is_user_crige_partner_contributor = False
+        is_user_crige_partner_referent = False
+
+        # is the user a CRIGE partner contributor?
+        for organisation in user.profile.contribute_for:
+            if organisation.is_crige_partner:
+                is_user_crige_partner_contributor = True
+                break
+
+        # is the user a CRIGE partner referent?
+        for organisation in user.profile.referent_for:
+            if organisation.is_crige_partner:
+                is_user_crige_partner_referent = True
+                break
+
+#         logging.info("crige admin? " + str(user.profile.is_crige_admin))
+#         logging.info("crige partner contributor? " + str(is_user_crige_partner_contributor))
+#         logging.info("crige partner referent? " + str(is_user_crige_partner_referent))
+
+        if not (user.profile.is_crige_admin or is_user_crige_partner_contributor or is_user_crige_partner_referent):
             abort(403)
         return func(*args, **kwargs)
-        # Post-traitement
+        # Postprocessing
     return decorated_view
 
 
@@ -128,30 +149,32 @@ def viewerstudio_user_info():
         organisations = set()
 
         for organisation in user.profile.referent_for:
-            org_name = organisation.ckan_slug
-            if org_name not in organisations:
-                organisations.add(org_name)
-                data["userGroups"].append(
-                    {
-                        "fullName": organisation.name,
-                        "slugName": organisation.ckan_slug,
-                        "userRole": "referent",
-                        "groupType": "organisation"
-                    }
-                )
+            if organisation.is_crige_partner:
+                org_name = organisation.ckan_slug
+                if org_name not in organisations:
+                    organisations.add(org_name)
+                    data["userGroups"].append(
+                        {
+                            "fullName": organisation.name,
+                            "slugName": organisation.ckan_slug,
+                            "userRole": "referent",
+                            "groupType": "organisation"
+                        }
+                    )
 
         for organisation in user.profile.contribute_for:
-            org_name = organisation.ckan_slug
-            if org_name not in organisations:
-                organisations.add(org_name)
-                data["userGroups"].append(
-                    {
-                        "fullName": organisation.name,
-                        "slugName": organisation.ckan_slug,
-                        "userRole": "contributor",
-                        "groupType": "organisation"
-                    }
-                )
+            if organisation.is_crige_partner:
+                org_name = organisation.ckan_slug
+                if org_name not in organisations:
+                    organisations.add(org_name)
+                    data["userGroups"].append(
+                        {
+                            "fullName": organisation.name,
+                            "slugName": organisation.ckan_slug,
+                            "userRole": "contributor",
+                            "groupType": "organisation"
+                        }
+                    )
 
         logging.info(data)
 
@@ -217,16 +240,18 @@ def viewerstudio_list_user_content():
     user_content = []
 
     for organisation in user.profile.referent_for:
-        folder = os.path.join(conf["export_conf_folder"], organisation.ckan_slug)
-        if folder not in folders:
-            folders.add(folder)
-            user_content.extend(get_user_content_in_folder(folder=folder, user_role="referent"))
+        if organisation.is_crige_partner:
+            folder = os.path.join(conf["export_conf_folder"], organisation.ckan_slug)
+            if folder not in folders:
+                folders.add(folder)
+                user_content.extend(get_user_content_in_folder(folder=folder, user_role="referent"))
 
     for organisation in user.profile.contribute_for:
-        folder = os.path.join(conf["export_conf_folder"], organisation.ckan_slug)
-        if folder not in folders:
-            folders.add(folder)
-            user_content.extend(get_user_content_in_folder(folder=folder, user_role="contributor"))
+        if organisation.is_crige_partner:
+            folder = os.path.join(conf["export_conf_folder"], organisation.ckan_slug)
+            if folder not in folders:
+                folders.add(folder)
+                user_content.extend(get_user_content_in_folder(folder=folder, user_role="contributor"))
 
     return jsonify(user_content)
 
