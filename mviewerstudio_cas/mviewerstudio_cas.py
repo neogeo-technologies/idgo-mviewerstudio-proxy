@@ -25,7 +25,9 @@ from idgo_admin.api.views.user import serializer  # noqa: E402
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
+app.config.from_object("settings")
 VIEWER_STUDIO_PATH = "/var/www/html/viewerstudio/"
+PATH_INFO = app.config.get('PATH_INFO', "/viewerstudio")
 
 
 def privileged_user_required(func):
@@ -73,23 +75,23 @@ def error_403(e):
 @app.route("/")
 @login_required
 def route_root():
-    return redirect("/studiocarto/")
+    return redirect(PATH_INFO + "/")
 
 
-@app.route("/studiocarto/logout")
+@app.route(PATH_INFO + "/logout")
 def rt_logout():
     return logout()
 
 
-@app.route("/studiocarto")
-@app.route("/studiocarto/")
+@app.route(PATH_INFO)
+@app.route(PATH_INFO + "/")
 @login_required
 @privileged_user_required
 def send_viewerstudio_index():
     return send_from_directory(VIEWER_STUDIO_PATH, "index.html")
 
 
-@app.route("/studiocarto/<path:path>")
+@app.route(PATH_INFO + "/<path:path>")
 @login_required
 @privileged_user_required
 def send_viewerstudio_files(path):
@@ -106,7 +108,7 @@ def get_conf():
     return conf
 
 
-@app.route("/studiocarto/srv/delete.php")
+@app.route(PATH_INFO + "/srv/delete.php")
 @login_required
 @privileged_user_required
 def viewerstudio_delete_user_content():
@@ -137,7 +139,7 @@ def viewerstudio_delete_user_content():
     return jsonify({"deleted_files": counter})
 
 
-@app.route("/studiocarto/user_info")
+@app.route(PATH_INFO + "/user_info")
 @login_required
 @privileged_user_required
 def viewerstudio_user_info():
@@ -232,7 +234,7 @@ def get_user_content_in_folder(folder, user_role):
     return user_content
 
 
-@app.route("/studiocarto/srv/list.php")
+@app.route(PATH_INFO + "/srv/list.php")
 @login_required
 @privileged_user_required
 def viewerstudio_list_user_content():
@@ -259,7 +261,7 @@ def viewerstudio_list_user_content():
     return jsonify(user_content)
 
 
-@app.route("/studiocarto/srv/store.php", methods=["POST"])
+@app.route(PATH_INFO + "/srv/store.php", methods=["POST"])
 @login_required
 @privileged_user_required
 def viewerstudio_store_user_content():
@@ -301,7 +303,7 @@ def viewerstudio_store_user_content():
     )
 
 
-@app.route("/studiocarto/proxy/", methods=["GET", "POST"])
+@app.route(PATH_INFO + "/proxy/", methods=["GET", "POST"])
 def proxy():
 
     if flask.request.method == "GET":
@@ -312,8 +314,7 @@ def proxy():
         raise BadRequest("Unauthorized method")
 
 
-cas = CAS(app, "/studiocarto/cas")
-app.config.from_object("settings")
+cas = CAS(app, PATH_INFO + "/cas")
 #app.config["CAS_AFTER_LOGIN"] = "route_root"
 app.config["CAS_AFTER_LOGIN"] = "send_viewerstudio_index"
 app.config["CAS_LOGIN_ROUTE"] = "/signin"
