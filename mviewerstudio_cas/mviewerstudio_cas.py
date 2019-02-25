@@ -73,23 +73,23 @@ def error_403(e):
 @app.route("/")
 @login_required
 def route_root():
-    return redirect("/viewerstudio/")
+    return redirect("/studiocarto/")
 
 
-@app.route("/logout")
+@app.route("/studiocarto/logout")
 def rt_logout():
     return logout()
 
 
-@app.route("/viewerstudio")
-@app.route("/viewerstudio/")
+@app.route("/studiocarto")
+@app.route("/studiocarto/")
 @login_required
 @privileged_user_required
 def send_viewerstudio_index():
     return send_from_directory(VIEWER_STUDIO_PATH, "index.html")
 
 
-@app.route("/viewerstudio/<path:path>")
+@app.route("/studiocarto/<path:path>")
 @login_required
 @privileged_user_required
 def send_viewerstudio_files(path):
@@ -106,7 +106,7 @@ def get_conf():
     return conf
 
 
-@app.route("/viewerstudio/srv/delete.php")
+@app.route("/studiocarto/srv/delete.php")
 @login_required
 @privileged_user_required
 def viewerstudio_delete_user_content():
@@ -137,7 +137,7 @@ def viewerstudio_delete_user_content():
     return jsonify({"deleted_files": counter})
 
 
-@app.route("/viewerstudio/user_info")
+@app.route("/studiocarto/user_info")
 @login_required
 @privileged_user_required
 def viewerstudio_user_info():
@@ -232,7 +232,7 @@ def get_user_content_in_folder(folder, user_role):
     return user_content
 
 
-@app.route("/viewerstudio/srv/list.php")
+@app.route("/studiocarto/srv/list.php")
 @login_required
 @privileged_user_required
 def viewerstudio_list_user_content():
@@ -259,7 +259,7 @@ def viewerstudio_list_user_content():
     return jsonify(user_content)
 
 
-@app.route("/viewerstudio/srv/store.php", methods=["POST"])
+@app.route("/studiocarto/srv/store.php", methods=["POST"])
 @login_required
 @privileged_user_required
 def viewerstudio_store_user_content():
@@ -301,7 +301,7 @@ def viewerstudio_store_user_content():
     )
 
 
-@app.route("/proxy/", methods=["GET", "POST"])
+@app.route("/studiocarto/proxy/", methods=["GET", "POST"])
 def proxy():
 
     if flask.request.method == "GET":
@@ -312,9 +312,10 @@ def proxy():
         raise BadRequest("Unauthorized method")
 
 
-cas = CAS(app, "/cas")
+cas = CAS(app, "/studiocarto/cas")
 app.config.from_object("settings")
-app.config["CAS_AFTER_LOGIN"] = "route_root"
+#app.config["CAS_AFTER_LOGIN"] = "route_root"
+app.config["CAS_AFTER_LOGIN"] = "send_viewerstudio_index"
 app.config["CAS_LOGIN_ROUTE"] = "/signin"
 app.config["SESSION_TYPE"] = "filesystem"
 
