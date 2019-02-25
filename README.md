@@ -21,3 +21,21 @@ Pour y revenir :
 ```
 tmux a
 ```
+
+# Lancer avec gunicorn
+
+```
+sudo cp systemd/*  /etc/systemd/system/
+# Editer les deux fichiers de configuration pour vérifier les chemins
+sudo systemctl daemon-reload
+sudo systemctl enable gunicorn
+sudo systemctl start gunicorn
+```
+
+Ajouter ça dans la conf apache:
+```
+    <Location /studiocarto>
+        ProxyPreserveHost On
+        ProxyPass unix:/run/gunicorn/socket|http://localhost:8000/studiocarto
+    </Location>
+```
