@@ -21,7 +21,6 @@ sys.path.append("/idgo_venv/")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 from django.contrib.auth.models import User  # noqa: E402
-from idgo_admin.api.views.user import serializer  # noqa: E402
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
