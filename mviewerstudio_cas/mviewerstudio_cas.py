@@ -155,13 +155,13 @@ def viewerstudio_user_info():
 
         for organisation in user.profile.referent_for:
             if organisation.is_crige_partner:
-                org_name = organisation.ckan_slug
+                org_name = organisation.slug
                 if org_name not in organisations:
                     organisations.add(org_name)
                     data["userGroups"].append(
                         {
-                            "fullName": organisation.name,
-                            "slugName": organisation.ckan_slug,
+                            "fullName": organisation.legal_name,
+                            "slugName": organisation.slug,
                             "userRole": "referent",
                             "groupType": "organisation"
                         }
@@ -169,13 +169,13 @@ def viewerstudio_user_info():
 
         for organisation in user.profile.contribute_for:
             if organisation.is_crige_partner:
-                org_name = organisation.ckan_slug
+                org_name = organisation.slug
                 if org_name not in organisations:
                     organisations.add(org_name)
                     data["userGroups"].append(
                         {
-                            "fullName": organisation.name,
-                            "slugName": organisation.ckan_slug,
+                            "fullName": organisation.legal_name,
+                            "slugName": organisation.slug,
                             "userRole": "contributor",
                             "groupType": "organisation"
                         }
@@ -245,14 +245,14 @@ def viewerstudio_list_user_content():
 
     for organisation in user.profile.referent_for:
         if organisation.is_crige_partner:
-            folder = os.path.join(conf["export_conf_folder"], organisation.ckan_slug)
+            folder = os.path.join(conf["export_conf_folder"], organisation.slug)
             if folder not in folders:
                 folders.add(folder)
                 user_content.extend(get_user_content_in_folder(folder=folder, user_role="referent"))
 
     for organisation in user.profile.contribute_for:
         if organisation.is_crige_partner:
-            folder = os.path.join(conf["export_conf_folder"], organisation.ckan_slug)
+            folder = os.path.join(conf["export_conf_folder"], organisation.slug)
             if folder not in folders:
                 folders.add(folder)
                 user_content.extend(get_user_content_in_folder(folder=folder, user_role="contributor"))
