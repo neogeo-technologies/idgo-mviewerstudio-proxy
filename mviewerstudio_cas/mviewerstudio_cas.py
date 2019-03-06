@@ -6,7 +6,7 @@ import sys
 from functools import wraps
 
 import flask
-from flask import Flask, send_from_directory, redirect, jsonify, abort
+from flask import Flask, Response, send_from_directory, redirect, jsonify, abort
 from flask_cas import CAS, logout
 from flask_cas import login_required
 import requests
@@ -306,15 +306,16 @@ def viewerstudio_store_user_content():
 def proxy():
 
     if flask.request.method == "GET":
-        return requests.get(flask.request.args["url"]).content
+        response = requests.get(flask.request.args["url"])
+        return Response(response.content, mimetype=response.headers.get("content-type"), status=response.status_code)
     elif flask.request.method == "POST":
-        return requests.post(flask.request.args["url"], data=flask.request.data).content
+        response = requests.post(flask.request.args["url"], data=flask.request.data)
+        return Response(response.content, mimetype=response.headers.get("content-type"), status=response.status_code)
     else:
         raise BadRequest("Unauthorized method")
 
 
 cas = CAS(app, PATH_INFO + "/cas")
-#app.config["CAS_AFTER_LOGIN"] = "route_root"
 app.config["CAS_AFTER_LOGIN"] = "send_viewerstudio_index"
 app.config["CAS_LOGIN_ROUTE"] = "/signin"
 app.config["SESSION_TYPE"] = "filesystem"
