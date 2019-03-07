@@ -305,15 +305,16 @@ def viewerstudio_store_user_content():
 @app.route(PATH_INFO + "/proxy/", methods=["GET", "POST"])
 def proxy():
 
+    outgoing_headers = {"content-type": flask.request.content_type}
+
     if flask.request.method == "GET":
-        response = requests.get(flask.request.args["url"])
+        response = requests.get(flask.request.args["url"], headers=outgoing_headers)
         return Response(response.content, mimetype=response.headers.get("content-type"), status=response.status_code)
     elif flask.request.method == "POST":
-        response = requests.post(flask.request.args["url"], data=flask.request.data)
+        response = requests.post(flask.request.args["url"], data=flask.request.data, headers=outgoing_headers)
         return Response(response.content, mimetype=response.headers.get("content-type"), status=response.status_code)
     else:
         raise BadRequest("Unauthorized method")
-
 
 cas = CAS(app, PATH_INFO + "/cas")
 app.config["CAS_AFTER_LOGIN"] = "send_viewerstudio_index"
