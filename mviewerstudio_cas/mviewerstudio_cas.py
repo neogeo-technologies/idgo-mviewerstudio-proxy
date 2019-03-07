@@ -207,26 +207,31 @@ def get_user_content_in_folder(folder, user_role):
 
         for filename in entries:
             with open(filename, encoding="utf-8") as f:
-                xml = xmltodict.parse(f.read(), process_namespaces=False)
+                try:
+                    xml = xmltodict.parse(f.read(), process_namespaces=False)
 
-                # admin user can access any xml file
-                # referent user can access any xml file for all organisation he is a referent for
-                # contributor user can access xml files of which he is the creator
-                description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
-                if ((user_role == "contributor" and description["dc:creator"] == cas.username) or
-                    user_role == "referent"):
-                    url = filename.replace(
-                        conf["export_conf_folder"], conf["conf_path_from_mviewer"]
-                    )
-                    metadata = {
-                        "url": url,
-                        "creator": description["dc:creator"],
-                        "date": description.get("dc:date", ""),
-                        "title": description.get("dc:title", ""),
-                        "subjects": description.get("dc:subject", ""),
-                        "group": os.path.basename(folder),
-                    }
-                    user_content.append(metadata)
+                    # admin user can access any xml file
+                    # referent user can access any xml file for all organisation he is a referent for
+                    # contributor user can access xml files of which he is the creator
+                    description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
+                    if ((user_role == "contributor" and description["dc:creator"] == cas.username) or
+                        user_role == "referent"):
+                        url = filename.replace(
+                            conf["export_conf_folder"], conf["conf_path_from_mviewer"]
+                        )
+                        metadata = {
+                            "url": url,
+                            "creator": description["dc:creator"],
+                            "date": description.get("dc:date", ""),
+                            "title": description.get("dc:title", ""),
+                            "subjects": description.get("dc:subject", ""),
+                            "group": os.path.basename(folder),
+                        }
+                        user_content.append(metadata)
+                except Exception as e:
+                    logging.error("An error occured while reading {}".format(filename))
+                    logging.error(e)
+
     except FileNotFoundError as e:
         logging.debug(e)
 
