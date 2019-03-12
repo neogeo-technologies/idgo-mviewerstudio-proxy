@@ -307,19 +307,26 @@ def viewerstudio_store_user_content():
     )
 
 
-@app.route(PATH_INFO + "/proxy/", methods=["GET", "POST"])
+@app.route(PATH_INFO + "/proxy/", methods=["GET", "POST", "HEAD"])
 def proxy():
 
-    outgoing_headers = {"content-type": flask.request.content_type}
-
-    if flask.request.method == "GET":
-        response = requests.get(flask.request.args["url"], headers=outgoing_headers)
-        return Response(response.content, mimetype=response.headers.get("content-type"), status=response.status_code)
-    elif flask.request.method == "POST":
-        response = requests.post(flask.request.args["url"], data=flask.request.data, headers=outgoing_headers)
-        return Response(response.content, mimetype=response.headers.get("content-type"), status=response.status_code)
-    else:
+    if flask.request.method not in ("GET", "POST", "HEAD"):
         raise BadRequest("Unauthorized method")
+
+    response = requests.request(
+        method=flask.request.method,
+        url=flask.request.args["url"],
+        headers={key: value for (key, value) in flask.request.headers if key != 'Host'},
+        data=flask.request.get_data(),
+        cookies=flask.request.cookies,
+        allow_redirects=False)
+
+    excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+    headers = [(name, value) for (name, value) in response.raw.headers.items()
+               if name.lower() not in excluded_headers]
+
+    return Response(response.content, mimetype=response.headers.get("content-type"),
+                    status=response.status_code, headers=headers)
 
 cas = CAS(app, PATH_INFO + "/cas")
 app.config["CAS_AFTER_LOGIN"] = "send_viewerstudio_index"
