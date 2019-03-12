@@ -328,6 +328,7 @@ def proxy():
     return Response(response.content, mimetype=response.headers.get("content-type"),
                     status=response.status_code, headers=headers)
 
+
 cas = CAS(app, PATH_INFO + "/cas")
 app.config["CAS_AFTER_LOGIN"] = "send_viewerstudio_index"
 app.config["CAS_LOGIN_ROUTE"] = "/signin"
