@@ -14,7 +14,8 @@ logging.basicConfig(level=logging.DEBUG)
 if __name__ == '__main__':
     idgo_settings_dir_path =None
     mra_settings = None
-    mviewerstudio_config_file_path = None
+    input_mviewerstudio_config_file_path = None
+    ouput_mviewerstudio_config_file_path = None
     et_mra_workspaces = None
     et_workspace_names = None
     mra_workspaces_names = []
@@ -75,10 +76,12 @@ if __name__ == '__main__':
     logging.info("Organisations and WMS URLs: {}".format(organisations))
 
     # Read studio config file
-    mviewerstudio_config_file_path = config.STUDIO_CONFIG_FILE
-    logging.info("Studio config file path: {}".format(mviewerstudio_config_file_path))
+    input_mviewerstudio_config_file_path = config.INPUT_STUDIO_CONFIG_FILE
+    output_mviewerstudio_config_file_path = config.OUTPUT_STUDIO_CONFIG_FILE
+    logging.info("Input studio config file path: {}".format(input_mviewerstudio_config_file_path))
+    logging.info("Output studio config file path: {}".format(output_mviewerstudio_config_file_path))
     studio_conf = None
-    with open(mviewerstudio_config_file_path) as f:
+    with open(input_mviewerstudio_config_file_path) as f:
         studio_conf = json.load(f)
 
     # Remove existing data providers
@@ -95,5 +98,5 @@ if __name__ == '__main__':
             })
 
     # Save config file
-    with open(mviewerstudio_config_file_path, 'w') as f:
+    with open(output_mviewerstudio_config_file_path, 'w') as f:
         json.dump(studio_conf, f, indent=4, sort_keys=True)
