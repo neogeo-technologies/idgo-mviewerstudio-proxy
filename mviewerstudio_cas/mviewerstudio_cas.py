@@ -106,13 +106,12 @@ def get_conf():
         conf = loads(config_file.read())["app_conf"]
     return conf
 
+conf = get_conf()
 
 @app.route(PATH_INFO + "/srv/delete.php")
 @login_required
 @privileged_user_required
 def viewerstudio_delete_user_content():
-    conf = get_conf()
-
     export_folder = conf["export_conf_folder"]
 
     entries = []
@@ -192,7 +191,6 @@ def viewerstudio_user_info():
 
 
 def get_user_content_in_folder(folder, user_role):
-    conf = get_conf()
     user_content = []
 
     # List regular XML files
@@ -242,7 +240,6 @@ def get_user_content_in_folder(folder, user_role):
 @login_required
 @privileged_user_required
 def viewerstudio_list_user_content():
-    conf = get_conf()
     user = User.objects.get(username=cas.username, is_active=True)
 
     folders = set()
@@ -271,7 +268,6 @@ def viewerstudio_list_user_content():
 def viewerstudio_store_user_content():
     user = User.objects.get(username=cas.username, is_active=True)
 
-    conf = get_conf()
     xml0 = flask.request.data
     xml = xml0.decode().replace("anonymous", cas.username)
 
