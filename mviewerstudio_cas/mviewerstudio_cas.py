@@ -17,16 +17,18 @@ from django.utils.text import slugify
 
 import django
 
-sys.path.append("/idgo_venv/")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-django.setup()
-from django.contrib.auth.models import User  # noqa: E402
-
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.config.from_object("settings")
-VIEWER_STUDIO_PATH = "/var/www/html/viewerstudio/"
+VIEWER_STUDIO_PATH = app.config.get("VIEWER_STUDIO_PATH",
+                                    "/var/www/html/viewerstudio/")
 PATH_INFO = app.config.get('PATH_INFO', "/viewerstudio")
+
+if app.config.get("DJANGO_ENABLED", True):
+    sys.path.append("/idgo_venv/")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    django.setup()
+    from django.contrib.auth.models import User  # noqa: E402
 
 
 def privileged_user_required(func):
@@ -85,14 +87,14 @@ def rt_logout():
 @app.route(PATH_INFO)
 @app.route(PATH_INFO + "/")
 @login_required
-@privileged_user_required
+#@privileged_user_required
 def send_viewerstudio_index():
     return send_from_directory(VIEWER_STUDIO_PATH, "index.html")
 
 
 @app.route(PATH_INFO + "/<path:path>")
 @login_required
-@privileged_user_required
+#@privileged_user_required
 def send_viewerstudio_files(path):
     logging.info("File transfered: {}".format(path))
     return send_from_directory(VIEWER_STUDIO_PATH, path)
