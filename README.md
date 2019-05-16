@@ -25,7 +25,7 @@ tmux a
 # Lancer avec gunicorn
 
 ```
-sudo cp systemd/*  /etc/systemd/system/
+sudo cp systemd/gunicorn.service  /etc/systemd/system/
 # Editer les deux fichiers de configuration pour vérifier les chemins
 sudo systemctl daemon-reload
 sudo systemctl enable gunicorn
@@ -36,6 +36,6 @@ Ajouter ça dans la conf apache:
 ```
     <Location /studiocarto>
         ProxyPreserveHost On
-        ProxyPass unix:/run/gunicorn/socket|http://localhost:8000/studiocarto
+        ProxyPass http://localhost:8000/studiocarto
     </Location>
 ```
