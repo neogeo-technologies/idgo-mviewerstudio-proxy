@@ -11,22 +11,35 @@ from flask_cas import CAS, logout
 from flask_cas import login_required
 import requests
 from werkzeug.exceptions import BadRequest
+
 import xmltodict
-
-from django.utils.text import slugify
-
-import django
-
-sys.path.append("/idgo_venv/")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-django.setup()
-from django.contrib.auth.models import User  # noqa: E402
+from slugify import slugify
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.config.from_object("settings")
 VIEWER_STUDIO_PATH = "/var/www/html/viewerstudio/"
-PATH_INFO = app.config.get('PATH_INFO', "/viewerstudio")
+PATH_INFO = app.config.get("PATH_INFO", "/viewerstudio")
+CAS_SERVER = app.config.get("CAS_SERVER")
+API_PATH = app.config.get("API_PATH")
+API_USER = app.config.get("API_USER")
+API_PWD = app.config.get("API_PWD")
+
+
+def get_user_info(user_name):
+    user_request_url = '/'.join(s.strip('/') for s in (API_PATH, "user", user_name))
+    user_api_response = requests.request(method="GET", url=user_request_url,
+        auth=requests.auth.HTTPBasicAuth(API_USER, API_PWD))
+    if user_api_response.status_code != 200:
+        return None
+    return user_api_response.json()
+
+
+def get_org_info(org_name):
+    org_request_url = '/'.join(s.strip('/') for s in (API_PATH, "organisation", org_name))
+    org_api_response = requests.request(method="GET", url=org_request_url,
+        auth=requests.auth.HTTPBasicAuth(API_USER, API_PWD))
+    return org_api_response.json()
 
 
 def privileged_user_required(func):
@@ -34,34 +47,50 @@ def privileged_user_required(func):
     @wraps(func)
     def decorated_view(*args, **kwargs):
         # Preprocessing
-        user = User.objects.get(username=cas.username, is_active=True)
 
+        user = get_user_info(cas.username)
+        if not user:
+            abort(401)
+
+        is_user_crige_admin = False
         is_user_crige_partner_member = False
         is_user_crige_partner_contributor = False
         is_user_crige_partner_referent = False
 
         # is the user a CRIGE partner member?
-        if user.profile.organisation:
-            is_user_crige_partner_member = user.profile.organisation.is_crige_partner
+        if user.get("organisation"):
+            org = get_org_info(user["organisation"].get("name"))
+            is_user_crige_partner_member = (org.get("crige")==True)
+
+        # is the user a crige admin?
+        if user.get("crige")==True and user.get("admin")== True:
+            is_user_crige_admin = True
 
         # is the user a CRIGE partner contributor?
-        for organisation in user.profile.contribute_for:
-            if organisation.is_crige_partner:
-                is_user_crige_partner_contributor = True
-                break
+        if user.get("contribute"):
+            organisation_names = [org.get("name") for org in user.get("contribute")]
+            for org_name in organisation_names:
+                org = get_org_info(org_name)
+                if org.get("crige"):
+                    is_user_crige_partner_contributor = True
+                    break
 
         # is the user a CRIGE partner referent?
-        for organisation in user.profile.referent_for:
-            if organisation.is_crige_partner:
-                is_user_crige_partner_referent = True
-                break
+        if user.get("referent"):
+            organisation_names = [org.get("name") for org in user.get("referent")]
+            for org_name in organisation_names:
+                org = get_org_info(org_name)
+                if org.get("crige"):
+                    is_user_crige_partner_referent = True 
+                    break
 
-        is_user_allowed = (user.profile.is_crige_admin or is_user_crige_partner_member) and \
+        is_user_allowed = (is_user_crige_admin or is_user_crige_partner_member) and \
                           (is_user_crige_partner_contributor or is_user_crige_partner_referent)
 
         if not is_user_allowed:
             abort(403)
         return func(*args, **kwargs)
+
         # Postprocessing
     return decorated_view
 
@@ -141,40 +170,46 @@ def viewerstudio_delete_user_content():
 @login_required
 @privileged_user_required
 def viewerstudio_user_info():
-    user = User.objects.get(username=cas.username, is_active=True)
+    user = get_user_info(cas.username)
     data = {}
 
     try:
-        data["userName"] = user.username
-        data["firstName"] = user.first_name
-        data["lastName"] = user.last_name
+        data["userName"] = user.get("username")
+        data["firstName"] = user.get("first_name")
+        data["lastName"] = user.get("last_name")
         data["userGroups"] = []
 
         organisations = set()
+        referent_org_names = []
+        if user.get("referent"):
+            referent_org_names = [org.get("name") for org in user.get("referent")]
+        contributor_org_names = []
+        if user.get("contribute"):
+            contributor_org_names = [org.get("name") for org in user.get("contribute")]
 
-        for organisation in user.profile.referent_for:
-            if organisation.is_crige_partner:
-                org_name = organisation.slug
+        for org_name in referent_org_names:
+            org = get_org_info(org_name)
+            if org.get("crige") == True:
                 if org_name not in organisations:
                     organisations.add(org_name)
                     data["userGroups"].append(
                         {
-                            "fullName": organisation.legal_name,
-                            "slugName": organisation.slug,
+                            "fullName": org.get("legal_name"),
+                            "slugName": org_name,
                             "userRole": "referent",
                             "groupType": "organisation"
                         }
                     )
 
-        for organisation in user.profile.contribute_for:
-            if organisation.is_crige_partner:
-                org_name = organisation.slug
+        for org_name in contributor_org_names:
+            org = get_org_info(org_name)
+            if org.get("crige") == True:
                 if org_name not in organisations:
                     organisations.add(org_name)
                     data["userGroups"].append(
                         {
-                            "fullName": organisation.legal_name,
-                            "slugName": organisation.slug,
+                            "fullName": org.get("legal_name"),
+                            "slugName": org_name,
                             "userRole": "contributor",
                             "groupType": "organisation"
                         }
@@ -240,21 +275,31 @@ def get_user_content_in_folder(folder, user_role):
 @login_required
 @privileged_user_required
 def viewerstudio_list_user_content():
-    user = User.objects.get(username=cas.username, is_active=True)
+    user = get_user_info(cas.username)
 
     folders = set()
     user_content = []
 
-    for organisation in user.profile.referent_for:
-        if organisation.is_crige_partner:
-            folder = os.path.join(conf["export_conf_folder"], organisation.slug)
+    referent_org_names = []
+    if user.get("referent"):
+        referent_org_names = [org.get("name") for org in user.get("referent")]
+    contributor_org_names = []
+    if user.get("contribute"):
+        contributor_org_names = [org.get("name") for org in user.get("contribute")]
+
+
+    for org_name in referent_org_names:
+        org = get_org_info(org_name)
+        if org.get("crige") == True:
+            folder = os.path.join(conf["export_conf_folder"], org_name)
             if folder not in folders:
                 folders.add(folder)
                 user_content.extend(get_user_content_in_folder(folder=folder, user_role="referent"))
 
-    for organisation in user.profile.contribute_for:
-        if organisation.is_crige_partner:
-            folder = os.path.join(conf["export_conf_folder"], organisation.slug)
+    for org_name in contributor_org_names:
+        org = get_org_info(org_name)
+        if org.get("crige") == True:
+            folder = os.path.join(conf["export_conf_folder"], org_name)
             if folder not in folders:
                 folders.add(folder)
                 user_content.extend(get_user_content_in_folder(folder=folder, user_role="contributor"))
@@ -266,7 +311,6 @@ def viewerstudio_list_user_content():
 @login_required
 @privileged_user_required
 def viewerstudio_store_user_content():
-    user = User.objects.get(username=cas.username, is_active=True)
 
     xml0 = flask.request.data
     xml = xml0.decode().replace("anonymous", cas.username)
@@ -336,3 +380,4 @@ application = app
 if __name__ == "__main__":
     app.debug = True
     app.run()
+
