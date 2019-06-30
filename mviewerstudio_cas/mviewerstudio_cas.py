@@ -97,7 +97,7 @@ def privileged_user_required(func):
 
 @app.errorhandler(403)
 def error_403(e):
-    return send_from_directory(VIEWER_STUDIO_PATH, "403.html")
+    return send_from_directory(VIEWER_STUDIO_PATH, "403.html"), 403
 
 
 @app.route("/")
