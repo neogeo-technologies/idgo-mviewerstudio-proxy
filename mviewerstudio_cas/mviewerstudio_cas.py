@@ -4,16 +4,20 @@ from stat import S_ISREG, ST_MTIME, ST_MODE
 import os
 import sys
 from functools import wraps
+import json
 
 import flask
 from flask import Flask, Response, send_from_directory, redirect, jsonify, abort
 from flask_cas import CAS, logout
 from flask_cas import login_required
-import requests
 from werkzeug.exceptions import BadRequest
+
+import requests
 
 import xmltodict
 from slugify import slugify
+
+import redis
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
@@ -27,19 +31,27 @@ API_PWD = app.config.get("API_PWD")
 
 
 def get_user_info(user_name):
-    user_request_url = '/'.join(s.strip('/') for s in (API_PATH, "user", user_name))
-    user_api_response = requests.request(method="GET", url=user_request_url,
-        auth=requests.auth.HTTPBasicAuth(API_USER, API_PWD))
-    if user_api_response.status_code != 200:
-        return None
-    return user_api_response.json()
+    r = redis.Redis()
+    redis_key = 'mviewerstudio_cas_' + user_name
+    if not r.get(redis_key):
+        user_request_url = '/'.join(s.strip('/') for s in (API_PATH, "user", user_name))
+        user_api_response = requests.request(method="GET", url=user_request_url,
+            auth=requests.auth.HTTPBasicAuth(API_USER, API_PWD))
+        if user_api_response.status_code != 200:
+            return None
+        r.set(redis_key, user_api_response.content, ex=300)
+    return json.loads(r.get(redis_key).decode())
 
 
 def get_org_info(org_name):
-    org_request_url = '/'.join(s.strip('/') for s in (API_PATH, "organisation", org_name))
-    org_api_response = requests.request(method="GET", url=org_request_url,
-        auth=requests.auth.HTTPBasicAuth(API_USER, API_PWD))
-    return org_api_response.json()
+    r = redis.Redis()
+    redis_key = 'mviewerstudio_cas_' + org_name
+    if not r.get(redis_key):
+        org_request_url = '/'.join(s.strip('/') for s in (API_PATH, "organisation", org_name))
+        org_api_response = requests.request(method="GET", url=org_request_url,
+            auth=requests.auth.HTTPBasicAuth(API_USER, API_PWD))
+        r.set(redis_key, org_api_response.content, ex=300)
+    return json.loads(r.get(redis_key).decode())
 
 
 def privileged_user_required(func):
