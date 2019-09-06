@@ -1,8 +1,7 @@
 from json import loads
 import logging
-from stat import S_ISREG, ST_MTIME, ST_MODE
+from stat import S_ISREG, ST_MODE
 import os
-import sys
 from functools import wraps
 import json
 
@@ -22,7 +21,8 @@ import redis
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.config.from_object("settings")
-VIEWER_STUDIO_PATH = "/var/www/html/viewerstudio/"
+VIEWER_STUDIO_PATH = app.config.get('VIEWER_STUDIO_PATH',
+                                    "/var/www/html/viewerstudio/")
 PATH_INFO = app.config.get("PATH_INFO", "/viewerstudio")
 CAS_SERVER = app.config.get("CAS_SERVER")
 API_PATH = app.config.get("API_PATH")
