@@ -21,6 +21,14 @@ import redis
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.config.from_object("settings")
+
+ext_proxy = app.config.get("PROXY")
+if ext_proxy:
+    for env in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
+        os.environ[env] = ext_proxy
+if app.config.get("NO_PROXY"):
+    os.environ['no_proxy'] = app.config.get("NO_PROXY")
+
 VIEWER_STUDIO_PATH = app.config.get('VIEWER_STUDIO_PATH',
                                     "/var/www/html/viewerstudio/")
 PATH_INFO = app.config.get("PATH_INFO", "/viewerstudio")
