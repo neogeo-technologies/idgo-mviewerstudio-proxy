@@ -63,7 +63,7 @@ def get_org_info(org_name):
 
 
 def privileged_user_required(func):
-    # Access to mviewerstudio is only given to CRIGE admins, CRIGE partners referents and CRIGE parteners contributors
+    # Access to mviewerstudio is only given to admins and referents
     @wraps(func)
     def decorated_view(*args, **kwargs):
         # Preprocessing
@@ -72,40 +72,20 @@ def privileged_user_required(func):
         if not user:
             abort(401)
 
-        is_user_crige_admin = False
-        is_user_crige_partner_member = False
-        is_user_crige_partner_contributor = False
-        is_user_crige_partner_referent = False
+        is_user_admin = False
+        is_user_referent = False
 
-        # is the user a CRIGE partner member?
-        if user.get("organisation"):
-            org = get_org_info(user["organisation"].get("name"))
-            is_user_crige_partner_member = (org.get("crige")==True)
+        # is the user an admin?
+        if user.get("admin")== True:
+            is_user_admin = True
 
-        # is the user a crige admin?
-        if user.get("crige")==True and user.get("admin")== True:
-            is_user_crige_admin = True
-
-        # is the user a CRIGE partner contributor?
-        if user.get("contribute"):
-            organisation_names = [org.get("name") for org in user.get("contribute")]
-            for org_name in organisation_names:
-                org = get_org_info(org_name)
-                if org.get("crige"):
-                    is_user_crige_partner_contributor = True
-                    break
-
-        # is the user a CRIGE partner referent?
+        # is the user a referent?
         if user.get("referent"):
             organisation_names = [org.get("name") for org in user.get("referent")]
-            for org_name in organisation_names:
-                org = get_org_info(org_name)
-                if org.get("crige"):
-                    is_user_crige_partner_referent = True 
-                    break
+            if len(organisation_names) > 1:
+                is_user_referent = True
 
-        is_user_allowed = (is_user_crige_admin or is_user_crige_partner_member) and \
-                          (is_user_crige_partner_contributor or is_user_crige_partner_referent)
+        is_user_allowed = (is_user_admin or is_user_referent)
 
         if not is_user_allowed:
             abort(403)
@@ -209,17 +189,18 @@ def viewerstudio_user_info():
 
         for org_name in referent_org_names:
             org = get_org_info(org_name)
-            if org.get("crige") == True:
-                if org_name not in organisations:
-                    organisations.add(org_name)
-                    data["userGroups"].append(
-                        {
-                            "fullName": org.get("legal_name"),
-                            "slugName": org_name,
-                            "userRole": "referent",
-                            "groupType": "organisation"
-                        }
-                    )
+            # This attribute is not used by IDéO BFC
+            # if org.get("crige") == True:
+            if org_name not in organisations:
+                organisations.add(org_name)
+                data["userGroups"].append(
+                    {
+                        "fullName": org.get("legal_name"),
+                        "slugName": org_name,
+                        "userRole": "referent",
+                        "groupType": "organisation"
+                    }
+                )
 
         for org_name in contributor_org_names:
             org = get_org_info(org_name)
@@ -310,11 +291,12 @@ def viewerstudio_list_user_content():
 
     for org_name in referent_org_names:
         org = get_org_info(org_name)
-        if org.get("crige") == True:
-            folder = os.path.join(conf["export_conf_folder"], org_name)
-            if folder not in folders:
-                folders.add(folder)
-                user_content.extend(get_user_content_in_folder(folder=folder, user_role="referent"))
+        # This attribute is not used by IDéO BFC
+        # if org.get("crige") == True:
+        folder = os.path.join(conf["export_conf_folder"], org_name)
+        if folder not in folders:
+            folders.add(folder)
+            user_content.extend(get_user_content_in_folder(folder=folder, user_role="referent"))
 
     for org_name in contributor_org_names:
         org = get_org_info(org_name)
