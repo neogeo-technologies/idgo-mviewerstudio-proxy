@@ -62,6 +62,40 @@ def get_org_info(org_name):
     return json.loads(r.get(redis_key).decode())
 
 
+# get user groups
+def get_user_groups(user):
+    groups = []
+
+    permission_model = app.config.get("PERMISSION_MODEL")
+
+    # Org names: union of orgs for which the user is referent or contributor
+    org_ids = set()
+    if user.get("referent"):
+        referent_orgs = [org.get("name") for org in user.get("referent")]
+        org_ids.update(referent_orgs)
+    if user.get("contribute"):
+        contribute_orgs = [org.get("name") for org in user.get("contribute")]
+        org_ids.update(contribute_orgs)
+
+    for org_id in org_ids:
+        org = get_org_info(org_id)
+        if (permission_model == "datasud" and org.get("crige") == True) or permission_model != "datasud":
+            user_role = "referent" if org_id in referent_orgs else "contributor"
+            org_name = org.get("legal_name")
+            groups.append(
+                {
+                    "id":        org_id,
+                    "fullName":  org.get("legal_name"),
+                    "slugName":  slugify(org_name),
+                    "userRole":  "referent",
+                    "groupType": "organisation"
+                }
+            )
+
+    logging.debug("user groups: {}".format(jsonify(groups)))
+
+    return groups
+
 # is the user an admin?
 def is_user_admin(user):
     return user.get("admin")
@@ -122,12 +156,15 @@ def is_user_crige_partner_referent(user):
 
 
 def privileged_user_required(func):
-    # Access to mviewerstudio is only given to CRIGE admins, CRIGE partners referents and CRIGE parteners contributors
+    # Access to mviewerstudio is only given to admins and referents
     @wraps(func)
     def decorated_view(*args, **kwargs):
         # Preprocessing
 
+        logging.debug("cas.username: {}".format(cas.username))
         user = get_user_info(cas.username)
+        logging.debug("File get_user_info result: {}".format(user))
+
         if not user:
             abort(401)
 
@@ -143,6 +180,8 @@ def privileged_user_required(func):
         # Autre
         else:
             is_user_allowed = False
+
+        logging.debug("is_user_allowed: {}".format(is_user_allowed))
 
         if not is_user_allowed:
             abort(403)
@@ -234,45 +273,9 @@ def viewerstudio_user_info():
         data["userName"] = user.get("username")
         data["firstName"] = user.get("first_name")
         data["lastName"] = user.get("last_name")
-        data["userGroups"] = []
+        data["userGroups"] = get_user_groups(user)
 
-        organisations = set()
-        referent_org_names = []
-        if user.get("referent"):
-            referent_org_names = [org.get("name") for org in user.get("referent")]
-        contributor_org_names = []
-        if user.get("contribute"):
-            contributor_org_names = [org.get("name") for org in user.get("contribute")]
-
-        for org_name in referent_org_names:
-            org = get_org_info(org_name)
-            if org.get("crige") == True:
-                if org_name not in organisations:
-                    organisations.add(org_name)
-                    data["userGroups"].append(
-                        {
-                            "fullName": org.get("legal_name"),
-                            "slugName": org_name,
-                            "userRole": "referent",
-                            "groupType": "organisation"
-                        }
-                    )
-
-        for org_name in contributor_org_names:
-            org = get_org_info(org_name)
-            if org.get("crige") == True:
-                if org_name not in organisations:
-                    organisations.add(org_name)
-                    data["userGroups"].append(
-                        {
-                            "fullName": org.get("legal_name"),
-                            "slugName": org_name,
-                            "userRole": "contributor",
-                            "groupType": "organisation"
-                        }
-                    )
-
-    except (FieldError, ValueError) as e:
+    except (KeyError, ValueError) as e:
         logging.error(e)
         return flask.abort(400)
     else:
@@ -323,7 +326,10 @@ def get_user_content_in_folder(folder, user_role):
                     logging.error(e)
 
     except FileNotFoundError as e:
-        logging.debug(e)
+        log_message = """File not found exception while running get_user_content_in_folder function.
+                         folder: {} ; user_role: {}
+                         exception message: {}""".format(folder, user_role, e)
+        logging.debug(log_message)
 
     return user_content
 
@@ -333,33 +339,18 @@ def get_user_content_in_folder(folder, user_role):
 @privileged_user_required
 def viewerstudio_list_user_content():
     user = get_user_info(cas.username)
-
-    folders = set()
+    user_groups = get_user_groups(user)
     user_content = []
 
-    referent_org_names = []
-    if user.get("referent"):
-        referent_org_names = [org.get("name") for org in user.get("referent")]
-    contributor_org_names = []
-    if user.get("contribute"):
-        contributor_org_names = [org.get("name") for org in user.get("contribute")]
+    for group in user_groups:
+        folder_name = group["slugName"]
+        user_role = group["userRole"]
+        folder = os.path.join(conf["export_conf_folder"], folder_name)
+        user_content.extend(get_user_content_in_folder(folder=folder, user_role=user_role))
 
-
-    for org_name in referent_org_names:
-        org = get_org_info(org_name)
-        if org.get("crige") == True:
-            folder = os.path.join(conf["export_conf_folder"], org_name)
-            if folder not in folders:
-                folders.add(folder)
-                user_content.extend(get_user_content_in_folder(folder=folder, user_role="referent"))
-
-    for org_name in contributor_org_names:
-        org = get_org_info(org_name)
-        if org.get("crige") == True:
-            folder = os.path.join(conf["export_conf_folder"], org_name)
-            if folder not in folders:
-                folders.add(folder)
-                user_content.extend(get_user_content_in_folder(folder=folder, user_role="contributor"))
+    log_message = """user: {}
+                     user content: {}""".format(user, jsonify(user_content))
+    logging.debug("user content: {}")
 
     return jsonify(user_content)
 
@@ -437,4 +428,3 @@ application = app
 if __name__ == "__main__":
     app.debug = True
     app.run()
-
