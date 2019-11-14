@@ -9,7 +9,7 @@ Group=www-data
 RuntimeDirectory=gunicorn
 WorkingDirectory=/mviewerstudio_venv/
 ExecStart=/mviewerstudio_venv/bin/gunicorn --pid /run/gunicorn/pid -w 4  \
-          --bind 127.0.0.1:8000 mviewerstudio_cas.mviewerstudio_cas
+          --bind 127.0.0.1:8000 mviewerstudio_cas.mviewerstudio_cas --timeout 300
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
 PrivateTmp=true
