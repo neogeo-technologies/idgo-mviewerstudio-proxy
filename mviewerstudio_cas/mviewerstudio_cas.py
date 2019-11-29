@@ -82,7 +82,7 @@ def privileged_user_required(func):
         # is the user a referent?
         if user.get("referent"):
             organisation_names = [org.get("name") for org in user.get("referent")]
-            if len(organisation_names) > 1:
+            if len(organisation_names) > 0:
                 is_user_referent = True
 
         is_user_allowed = (is_user_admin or is_user_referent)
