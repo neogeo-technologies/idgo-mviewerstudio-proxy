@@ -191,6 +191,11 @@ def privileged_user_required(func):
     return decorated_view
 
 
+@app.errorhandler(401)
+def error_401(e):
+    return send_from_directory(VIEWER_STUDIO_PATH, "401.html"), 401
+
+
 @app.errorhandler(403)
 def error_403(e):
     return send_from_directory(VIEWER_STUDIO_PATH, "403.html"), 403
