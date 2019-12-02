@@ -68,7 +68,9 @@ def privileged_user_required(func):
     def decorated_view(*args, **kwargs):
         # Preprocessing
 
+        logging.debug("cas.username: {}".format(cas.username))
         user = get_user_info(cas.username)
+        logging.debug("File get_user_info result: {}".format(user))
         if not user:
             abort(401)
 
@@ -86,6 +88,7 @@ def privileged_user_required(func):
                 is_user_referent = True
 
         is_user_allowed = (is_user_admin or is_user_referent)
+        logging.debug("is_user_allowed: {}".format(is_user_allowed))
 
         if not is_user_allowed:
             abort(403)
@@ -93,6 +96,11 @@ def privileged_user_required(func):
 
         # Postprocessing
     return decorated_view
+
+
+@app.errorhandler(401)
+def error_401(e):
+    return send_from_directory(VIEWER_STUDIO_PATH, "401.html"), 401
 
 
 @app.errorhandler(403)
