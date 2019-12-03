@@ -5,13 +5,14 @@ import sys
 import requests
 import xml.etree.ElementTree as ET
 import json
+import os
 
 import config
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-if __name__ == '__main__':
+def main():
     idgo_settings_dir_path =None
     mra_settings = None
     input_mviewerstudio_config_file_path = None
@@ -81,6 +82,11 @@ if __name__ == '__main__':
     logging.info("Input studio config file path: {}".format(input_mviewerstudio_config_file_path))
     logging.info("Output studio config file path: {}".format(output_mviewerstudio_config_file_path))
     studio_conf = None
+
+    if not os.path.exists(input_mviewerstudio_config_file_path):
+        logging.info("Studio config file path does not exist. Update of this file aborted.")
+        return
+
     with open(input_mviewerstudio_config_file_path) as f:
         studio_conf = json.load(f)
 
@@ -100,3 +106,7 @@ if __name__ == '__main__':
     # Save config file
     with open(output_mviewerstudio_config_file_path, 'w') as f:
         json.dump(studio_conf, f, indent=4, sort_keys=True)
+
+
+if __name__ == '__main__':
+    main()
