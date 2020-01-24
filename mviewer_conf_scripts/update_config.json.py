@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def main():
-    idgo_settings_dir_path =None
     mra_settings = None
     input_mviewerstudio_config_file_path = None
     ouput_mviewerstudio_config_file_path = None
@@ -24,16 +23,10 @@ def main():
     organisation_api_url = None
     ogc_url_pattern = None
 
-    # Read script config file
-    idgo_settings_dir_path = config.IDGO_ADMIN_SETTINGS_FILE_DIR
-    logging.info("IDGO settings file directory path: {}".format(idgo_settings_dir_path))
-
     # Get MRA parameters
-    sys.path.append(idgo_settings_dir_path)
-    import settings as idgo_settings
-    mra_settings = idgo_settings.MRA
+    mra_settings = config.MRA
     logging.debug("MRA settings: {}".format(mra_settings))
-    ogc_url_pattern = idgo_settings.OWS_URL_PATTERN
+    ogc_url_pattern = config.OWS_URL_PATTERN
     logging.debug("OGC URL pattern: {}".format(ogc_url_pattern))
     ogc_url_beginning = ogc_url_pattern.split("{")[0]
     logging.info("OGC URL beginning: {}".format(ogc_url_beginning))
@@ -58,7 +51,7 @@ def main():
     logging.info("MRA workspaces names: {}".format(mra_workspaces_names))
 
     # Organisation API calls
-    organisation_api_url = idgo_settings.DOMAIN_NAME + "/api/organisation/"
+    organisation_api_url = config.ORGANISATION_API_URL
 
     for organisation_slug_name in mra_workspaces_names:
         organisation_name = None
