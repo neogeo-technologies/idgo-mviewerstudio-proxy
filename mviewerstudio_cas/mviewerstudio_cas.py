@@ -381,7 +381,7 @@ def viewerstudio_store_user_content():
         conf["export_conf_folder"], publisher
     )
     if not os.path.exists(_map_directory):
-        os.makedirs(_map_directory)
+        os.makedirs(_map_directory, mode=0o770)
 
     filename = "{filename}.xml".format(filename=_map_title)
 
@@ -390,6 +390,7 @@ def viewerstudio_store_user_content():
 
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(xml)
+    os.chmod(file_path, mode=0o660)
 
     return jsonify(
         {
