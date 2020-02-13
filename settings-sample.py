@@ -9,3 +9,6 @@ API_USER = "api user"
 API_PWD = "api password"
 
 SECRET_KEY = "your secret key - change it"
+
+PERMISSION_MODEL = "datasud"
+# PERMISSION_MODEL = "ideo-bfc"

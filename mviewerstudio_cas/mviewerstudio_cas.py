@@ -62,6 +62,65 @@ def get_org_info(org_name):
     return json.loads(r.get(redis_key).decode())
 
 
+# is the user an admin?
+def is_user_admin(user):
+    return user.get("admin")
+
+
+# is the user a referent?
+def is_user_referent(user):
+    result = False
+    if user.get("referent"):
+        organisation_names = [org.get("name") for org in user.get("referent")]
+        if len(organisation_names) > 0:
+            result = True
+
+    return result
+
+
+# is the user a crige admin?
+def is_user_crige_admin(user):
+    return user.get("crige") and user.get("admin")
+
+
+# is the user a CRIGE partner member?
+def is_user_crige_partner_member(user):
+    result = False
+    if user.get("organisation"):
+        org = get_org_info(user["organisation"].get("name"))
+        result = (org.get("crige") == True)
+
+    return result
+
+
+# is the user a CRIGE partner contributor?
+def is_user_crige_partner_contributor(user):
+    result = False
+    if user.get("contribute"):
+        organisation_names = [org.get("name") for org in user.get("contribute")]
+        for org_name in organisation_names:
+            org = get_org_info(org_name)
+            if org.get("crige"):
+                result = True
+                break
+
+    return result
+
+
+# is the user a CRIGE partner referent?
+def is_user_crige_partner_referent(user):
+    result = False
+    if user.get("referent"):
+        organisation_names = [org.get("name") for org in user.get("referent")]
+        for org_name in organisation_names:
+            org = get_org_info(org_name)
+            if org.get("crige"):
+                result = True
+                break
+
+    return result
+
+
 def privileged_user_required(func):
     # Access to mviewerstudio is only given to CRIGE admins, CRIGE partners referents and CRIGE parteners contributors
     @wraps(func)
@@ -72,40 +131,18 @@ def privileged_user_required(func):
         if not user:
             abort(401)
 
-        is_user_crige_admin = False
-        is_user_crige_partner_member = False
-        is_user_crige_partner_contributor = False
-        is_user_crige_partner_referent = False
+        permission_model = app.config.get("PERMISSION_MODEL")
 
-        # is the user a CRIGE partner member?
-        if user.get("organisation"):
-            org = get_org_info(user["organisation"].get("name"))
-            is_user_crige_partner_member = (org.get("crige")==True)
-
-        # is the user a crige admin?
-        if user.get("crige")==True and user.get("admin")== True:
-            is_user_crige_admin = True
-
-        # is the user a CRIGE partner contributor?
-        if user.get("contribute"):
-            organisation_names = [org.get("name") for org in user.get("contribute")]
-            for org_name in organisation_names:
-                org = get_org_info(org_name)
-                if org.get("crige"):
-                    is_user_crige_partner_contributor = True
-                    break
-
-        # is the user a CRIGE partner referent?
-        if user.get("referent"):
-            organisation_names = [org.get("name") for org in user.get("referent")]
-            for org_name in organisation_names:
-                org = get_org_info(org_name)
-                if org.get("crige"):
-                    is_user_crige_partner_referent = True 
-                    break
-
-        is_user_allowed = (is_user_crige_admin or is_user_crige_partner_member) and \
-                          (is_user_crige_partner_contributor or is_user_crige_partner_referent)
+        # Datasud
+        if permission_model == "datasud":
+            is_user_allowed = (is_user_crige_admin(user) or is_user_crige_partner_member(user)) and \
+                              (is_user_crige_partner_contributor(user) or is_user_crige_partner_referent(user))
+        # IDéO BFC
+        elif permission_model == "ideo-bfc":
+            is_user_allowed = (is_user_admin(user) or is_user_referent(user))
+        # Autre
+        else:
+            is_user_allowed = False
 
         if not is_user_allowed:
             abort(403)
