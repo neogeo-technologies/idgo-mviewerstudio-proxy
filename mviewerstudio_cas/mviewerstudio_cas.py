@@ -326,7 +326,7 @@ def get_user_content_in_folder(folder, user_role):
                         }
                         user_content.append(metadata)
                 except Exception as e:
-                    logging.error("An error occured while reading {}".format(file_path))
+                    logging.error("An error occurred while reading {}".format(file_path))
                     logging.error(e)
 
         except FileNotFoundError as e:
@@ -363,7 +363,11 @@ def viewerstudio_list_user_content():
 def viewerstudio_store_user_content():
 
     xml0 = flask.request.data
-    xml = xml0.decode().replace("anonymous", cas.username)
+
+    # Insert real user name
+    user = get_user_info(cas.username)
+    user_real_name = "{} {}".format(user.get("first_name"), user.get("last_name"))
+    xml = xml0.decode().replace("anonymous", user_real_name)
 
     # Retrieve title
     _xml = xmltodict.parse(xml0, process_namespaces=False)
