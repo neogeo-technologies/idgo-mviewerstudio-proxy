@@ -92,7 +92,7 @@ def get_user_groups(user):
                 }
             )
 
-    logging.debug("user groups: {}".format(jsonify(groups)))
+    logging.debug("user groups: {}".format(groups))
 
     return groups
 
@@ -331,9 +331,8 @@ def get_user_content_in_folder(folder, user_role):
                     logging.error(e)
 
     except FileNotFoundError as e:
-        log_message = """File not found exception while running get_user_content_in_folder function.
-                         folder: {} ; user_role: {}
-                         exception message: {}""".format(folder, user_role, e)
+        log_message = "File not found exception while running get_user_content_in_folder function. " \
+                      "folder: {}; user_role: {}; exception message: {}".format(folder, user_role, e)
         logging.debug(log_message)
 
     return user_content
@@ -353,9 +352,8 @@ def viewerstudio_list_user_content():
         folder = os.path.join(conf["export_conf_folder"], folder_name)
         user_content.extend(get_user_content_in_folder(folder=folder, user_role=user_role))
 
-    log_message = """user: {}
-                     user content: {}""".format(user, jsonify(user_content))
-    logging.debug("user content: {}")
+    log_message = "user: {}; user content: {}".format(user, jsonify(user_content))
+    logging.debug(log_message)
 
     return jsonify(user_content)
 
