@@ -1,6 +1,6 @@
 from json import loads
 import logging
-from stat import S_ISREG, ST_MODE
+import glob
 import os
 from functools import wraps
 import json
@@ -294,21 +294,16 @@ def get_user_content_in_folder(folder, user_role):
     user_content = []
 
     # List regular XML files
-    try:
-        entries = (os.path.join(folder, fn) for fn in os.listdir(folder))
-        logging.debug("entries step 1: {}".format(entries))
-        entries = ((os.stat(path), path) for path in entries)
-        logging.debug("entries step 2: {}".format(entries))
-        entries = (
-            path
-            for stat, path in entries
-            if S_ISREG(stat[ST_MODE]) and path.endswith(".xml")
-        )
-        logging.debug("entries step 3: {}".format(entries))
+    entries = glob.glob(os.path.join(folder, "*.xml"))
 
+    for entry in entries:
+        file_path = os.path.join(folder, entry)
+        try:
+            log_message = "get_user_content_in_folder: reading file {}... folder: {}; user_role: {}".format(
+                file_path, folder, user_role)
+            logging.debug(log_message)
 
-        for filename in entries:
-            with open(filename, encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 try:
                     xml = xmltodict.parse(f.read(), process_namespaces=False)
 
@@ -318,7 +313,7 @@ def get_user_content_in_folder(folder, user_role):
                     description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
                     if ((user_role == "contributor" and description["dc:creator"] == cas.username) or
                         user_role == "referent"):
-                        url = filename.replace(
+                        url = file_path.replace(
                             conf["export_conf_folder"], conf["conf_path_from_mviewer"]
                         )
                         metadata = {
@@ -331,13 +326,13 @@ def get_user_content_in_folder(folder, user_role):
                         }
                         user_content.append(metadata)
                 except Exception as e:
-                    logging.error("An error occured while reading {}".format(filename))
+                    logging.error("An error occured while reading {}".format(file_path))
                     logging.error(e)
 
-    except FileNotFoundError as e:
-        log_message = "File not found exception while running get_user_content_in_folder function. " \
-                      "folder: {}; user_role: {}; exception message: {}".format(folder, user_role, e)
-        logging.debug(log_message)
+        except FileNotFoundError as e:
+            log_message = "File not found exception while running get_user_content_in_folder function. " \
+                          "folder: {}; user_role: {}; exception message: {}".format(folder, user_role, e)
+            logging.debug(log_message)
 
     return user_content
 
