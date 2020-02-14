@@ -296,12 +296,16 @@ def get_user_content_in_folder(folder, user_role):
     # List regular XML files
     try:
         entries = (os.path.join(folder, fn) for fn in os.listdir(folder))
+        logging.debug("entries step 1: {}".format(entries))
         entries = ((os.stat(path), path) for path in entries)
+        logging.debug("entries step 2: {}".format(entries))
         entries = (
             path
             for stat, path in entries
             if S_ISREG(stat[ST_MODE]) and path.endswith(".xml")
         )
+        logging.debug("entries step 3: {}".format(entries))
+
 
         for filename in entries:
             with open(filename, encoding="utf-8") as f:
