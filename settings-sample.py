@@ -1,5 +1,6 @@
 # DEBUG = True
 # TESTING = True
+LOGLEVEL = "WARNING"
 
 CAS_SERVER = "https://your.domain/"
 PATH_INFO = "/viewerstudio"

@@ -18,9 +18,10 @@ from slugify import slugify
 
 import redis
 
-logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.config.from_object("settings")
+if app.config.get("LOGLEVEL"):
+    logging.basicConfig(level=app.config.get("LOGLEVEL"))
 
 ext_proxy = app.config.get("PROXY")
 if ext_proxy:
