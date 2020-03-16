@@ -384,6 +384,8 @@ def viewerstudio_store_user_content():
     )
     if not os.path.exists(_map_directory):
         os.makedirs(_map_directory, mode=0o770)
+    if os.exists(_map_directory):
+        os.chmod(_map_directory, mode=0o770)
 
     filename = "{filename}.xml".format(filename=_map_title)
 
