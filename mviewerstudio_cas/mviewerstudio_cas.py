@@ -383,8 +383,15 @@ def viewerstudio_store_user_content():
         conf["export_conf_folder"], publisher
     )
     if not os.path.exists(_map_directory):
+        logging.debug("directory creation: {}".format(_map_directory))
         os.makedirs(_map_directory)
+        logging.debug("directory creation done")
+
+    if os.path.exists(_map_directory):
+        logging.debug("directory exists: {}".format(_map_directory))
+        logging.debug("directory stats before chmod: {}".format(str(os.stat(_map_directory))))
         os.chmod(_map_directory, mode=0o770)
+        logging.debug("directory stats after chmod: {}".format(str(os.stat(_map_directory))))
 
     filename = "{filename}.xml".format(filename=_map_title)
 
