@@ -85,11 +85,11 @@ def get_user_groups(user):
             org_name = org.get("legal_name")
             groups.append(
                 {
-                    "id":        org_id,
-                    "fullName":  org.get("legal_name"),
-                    "slugName":  slugify(org_name),
-                    "userRole":  "referent",
-                    "groupType": "organisation"
+                    "id":         org_id,
+                    "full_name":  org.get("legal_name"),
+                    "slug_name":  slugify(org_name),
+                    "user_role":  "referent",
+                    "group_type": "organisation"
                 }
             )
 
@@ -276,10 +276,10 @@ def viewerstudio_user_info():
     data = {}
 
     try:
-        data["userName"] = user.get("username")
-        data["firstName"] = user.get("first_name")
-        data["lastName"] = user.get("last_name")
-        data["userGroups"] = get_user_groups(user)
+        data["user_name"] = user.get("username")
+        data["first_name"] = user.get("first_name")
+        data["last_name"] = user.get("last_name")
+        data["user_groups"] = get_user_groups(user)
 
     except (KeyError, ValueError) as e:
         logging.error(e)
@@ -347,8 +347,8 @@ def viewerstudio_list_user_content():
     user_content = []
 
     for group in user_groups:
-        folder_name = group["slugName"]
-        user_role = group["userRole"]
+        folder_name = group["slug_name"]
+        user_role = group["user_role"]
         folder = os.path.join(conf["export_conf_folder"], folder_name)
         user_content.extend(get_user_content_in_folder(folder=folder, user_role=user_role))
 
