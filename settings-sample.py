@@ -13,3 +13,6 @@ SECRET_KEY = "your secret key - change it"
 
 PERMISSION_MODEL = "datasud"
 # PERMISSION_MODEL = "ideo-bfc"
+
+# Accès à Redis pour le cache utilisateur
+REDIS_URL = 'redis://localhost:6379/0'

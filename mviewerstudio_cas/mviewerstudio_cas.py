@@ -37,10 +37,22 @@ CAS_SERVER = app.config.get("CAS_SERVER")
 API_PATH = app.config.get("API_PATH")
 API_USER = app.config.get("API_USER")
 API_PWD = app.config.get("API_PWD")
+REDIS_URL = app.config.get("REDIS_URL", 'redis://localhost:6379/0')
+_redis = None
+
+
+def get_redis_connection():
+    """
+    get redis connection (as a singleton)
+    """
+    global _redis
+    if not _redis:
+        _redis = redis.Redis.from_url(REDIS_URL)
+    return _redis
 
 
 def get_user_info(user_name):
-    r = redis.Redis()
+    r = get_redis_connection()
     redis_key = 'mviewerstudio_cas_' + user_name
     if not r.get(redis_key):
         user_request_url = '/'.join(s.strip('/') for s in (API_PATH, "user", user_name))
@@ -53,7 +65,7 @@ def get_user_info(user_name):
 
 
 def get_org_info(org_name):
-    r = redis.Redis()
+    r = get_redis_connection()
     redis_key = 'mviewerstudio_cas_' + org_name
     if not r.get(redis_key):
         org_request_url = '/'.join(s.strip('/') for s in (API_PATH, "organisation", org_name))
