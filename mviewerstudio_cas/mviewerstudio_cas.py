@@ -9,7 +9,7 @@ import flask
 from flask import Flask, Response, send_from_directory, redirect, jsonify, abort
 from flask_cas import CAS, logout
 from flask_cas import login_required
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotFound
 
 import requests
 
@@ -206,12 +206,20 @@ def privileged_user_required(func):
 
 @app.errorhandler(401)
 def error_401(e):
-    return send_from_directory(VIEWER_STUDIO_PATH, "401.html"), 401
+    try:
+        error_file = send_from_directory(VIEWER_STUDIO_PATH, "401.html")
+    except NotFound:
+        error_file = "401 Unauthorized"
+    return error_file, 401
 
 
 @app.errorhandler(403)
 def error_403(e):
-    return send_from_directory(VIEWER_STUDIO_PATH, "403.html"), 403
+    try:
+        error_file = send_from_directory(VIEWER_STUDIO_PATH, "403.html")
+    except NotFound:
+        error_file = "403 Forbiden"
+    return error_file, 403
 
 
 @app.route("/")
