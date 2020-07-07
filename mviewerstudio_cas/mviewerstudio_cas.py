@@ -257,13 +257,16 @@ def viewerstudio_delete_user_content():
         # logging.info(xml["config"]["metadata"]["rdf:RDF"])
         description = xml["config"]["metadata"]["rdf:RDF"]["rdf:Description"]
         if description["dc:creator"] == cas.username:
-            counter += 1
             logging.info(
                 "removing {filename} of '{creator}'".format(
                     filename=filename, creator=cas.username
                 )
             )
-            os.unlink(filename)
+            try:
+                os.unlink(filename)
+                counter += 1
+            except OSError as err:
+                logging.error("Can't delete file %s : %s", filename, err)
 
     return jsonify({"deleted_files": counter})
 
@@ -368,7 +371,8 @@ def viewerstudio_store_user_content():
     # Insert real user name
     user = get_user_info(cas.username)
     user_real_name = "{} {}".format(user.get("first_name"), user.get("last_name"))
-    xml = xml0.decode().replace("anonymous", user_real_name)
+    # Change 'user_real_name' by 'cas.username' to match the delete method.
+    xml = xml0.decode().replace("anonymous", cas.username)
 
     # Retrieve title
     _xml = xmltodict.parse(xml0, process_namespaces=False)
@@ -394,9 +398,13 @@ def viewerstudio_store_user_content():
     file_path = os.path.join(_map_directory, filename)
     relative_file_path = "{}/{}".format(publisher, filename)
 
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(xml)
-    os.chmod(file_path, mode=0o660)
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(xml)
+        os.chmod(file_path, mode=0o660)
+    except OSError as err:
+        logging.error("Cant create/chmod file %s : %s", file_path, err)
+        return jsonify({'success': False})
 
     return jsonify(
         {
