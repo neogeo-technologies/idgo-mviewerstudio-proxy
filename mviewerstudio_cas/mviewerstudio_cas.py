@@ -127,7 +127,7 @@ def is_user_referent(user):
 
 # is the user a crige admin?
 def is_user_crige_admin(user):
-    return user.get("is_idgo_partner") and user.get("admin")
+    return user.get("crige") and user.get("admin")
 
 
 # is the user a CRIGE partner member?
