@@ -78,6 +78,8 @@ def get_org_info(org_name):
 # get user groups
 def get_user_groups(user):
     groups = []
+    referent_orgs = []
+    contribute_orgs = []
 
     permission_model = app.config.get("PERMISSION_MODEL")
 
@@ -100,7 +102,7 @@ def get_user_groups(user):
                     "id":         org_id,
                     "full_name":  org.get("legal_name"),
                     "slug_name":  slugify(org_name),
-                    "user_role":  "referent",
+                    "user_role":  user_role,
                     "group_type": "organisation"
                 }
             )
