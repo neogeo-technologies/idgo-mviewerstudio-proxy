@@ -92,7 +92,7 @@ def get_user_groups(user):
 
     for org_id in org_ids:
         org = get_org_info(org_id)
-        if (permission_model == "datasud" and org.get("crige") == True) or permission_model != "datasud":
+        if (permission_model == "datasud" and org.get("is_idgo_partner") == True) or permission_model != "datasud":
             user_role = "referent" if org_id in referent_orgs else "contributor"
             org_name = org.get("legal_name")
             groups.append(
@@ -127,7 +127,7 @@ def is_user_referent(user):
 
 # is the user a crige admin?
 def is_user_crige_admin(user):
-    return user.get("crige") and user.get("admin")
+    return user.get("is_idgo_partner") and user.get("admin")
 
 
 # is the user a CRIGE partner member?
@@ -135,7 +135,7 @@ def is_user_crige_partner_member(user):
     result = False
     if user.get("organisation"):
         org = get_org_info(user["organisation"].get("name"))
-        result = (org.get("crige") == True)
+        result = (org.get("is_idgo_partner") == True)
 
     return result
 
@@ -147,7 +147,7 @@ def is_user_crige_partner_contributor(user):
         organisation_names = [org.get("name") for org in user.get("contribute")]
         for org_name in organisation_names:
             org = get_org_info(org_name)
-            if org.get("crige"):
+            if org.get("is_idgo_partner"):
                 result = True
                 break
 
@@ -161,7 +161,7 @@ def is_user_crige_partner_referent(user):
         organisation_names = [org.get("name") for org in user.get("referent")]
         for org_name in organisation_names:
             org = get_org_info(org_name)
-            if org.get("crige"):
+            if org.get("is_idgo_partner"):
                 result = True
                 break
 
