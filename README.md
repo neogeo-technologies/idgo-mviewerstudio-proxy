@@ -62,8 +62,7 @@ c'est à dire dans lesquelles son nom est inscrit (voir paragraphe précédent).
 ## Suppression des cartes d'un utilisateur
 
 Cette fonction remplace le script "delete.php" proposé par défaut dans mviewerstudio_cas
-
-__ à compléter__
+Elle supprime toutes les cartes de l'utilisateur connecté, c'est à dire celle où est inscrit son nom.
 
 
 # Installation et configuration
