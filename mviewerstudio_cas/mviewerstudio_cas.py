@@ -389,8 +389,9 @@ def viewerstudio_store_user_content():
 
     # Insert real user name
     user = get_user_info(cas.username)
-    user_real_name = "{} {}".format(user.get("first_name"), user.get("last_name"))
-    xml = xml0.decode().replace("anonymous", user_real_name)
+    #user_real_name = "{} {}".format(user.get("first_name"), user.get("last_name"))
+    #xml = xml0.decode().replace("anonymous", user_real_name)
+    xml = xml0.decode().replace("anonymous", cas.username)
 
     # Retrieve title
     _xml = xmltodict.parse(xml0, process_namespaces=False)
